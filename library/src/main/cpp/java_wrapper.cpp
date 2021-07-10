@@ -2,16 +2,20 @@
 // Created by len on 23/12/20.
 //
 
-#include <jni.h>
-#include <android/bitmap.h>
-#include "java_stream.h"
-#include "java_objects.h"
-#include "decoders.h"
 #include "borders.h"
+#include "decoders.h"
+#include "java_objects.h"
+#include "java_stream.h"
+#include <android/bitmap.h>
+#include <jni.h>
+
+#ifdef HAVE_LCMS
+#include <include/lcms2.h>
+#endif
 
 jint JNI_OnLoad(JavaVM* vm, void*) {
   JNIEnv* env;
-  if (vm->GetEnv((void **) &env, JNI_VERSION_1_6) == JNI_OK) {
+  if (vm->GetEnv((void**)&env, JNI_VERSION_1_6) == JNI_OK) {
     init_java_stream(env);
     init_java_objects(env);
 
@@ -21,11 +25,10 @@ jint JNI_OnLoad(JavaVM* vm, void*) {
   return JNI_VERSION_1_6;
 }
 
-extern "C"
-JNIEXPORT jobject JNICALL
-Java_tachiyomi_decoder_ImageDecoder_nativeNewInstance(
-  JNIEnv* env, jclass, jobject jstream, jboolean cropBorders
-) {
+extern "C" JNIEXPORT jobject JNICALL
+Java_tachiyomi_decoder_ImageDecoder_nativeNewInstance(JNIEnv* env, jclass,
+                                                      jobject jstream,
+                                                      jboolean cropBorders) {
   auto stream = read_all_java_stream(env, jstream);
   if (!stream) {
     return nullptr;
@@ -33,7 +36,8 @@ Java_tachiyomi_decoder_ImageDecoder_nativeNewInstance(
 
   BaseDecoder* decoder;
   try {
-    if (false) {} // This should be optimized out by the compiler.
+    if (false) {
+    } // This should be optimized out by the compiler.
 #ifdef HAVE_LIBJPEG
     else if (is_jpeg(stream->bytes)) {
       decoder = new JpegDecoder(std::move(stream), cropBorders);
@@ -63,33 +67,27 @@ Java_tachiyomi_decoder_ImageDecoder_nativeNewInstance(
       LOGE("No decoder found to handle this stream");
       return nullptr;
     }
-  } catch (std::exception &ex) {
+  } catch (std::exception& ex) {
     LOGE("%s", ex.what());
     return nullptr;
   }
 
   Rect bounds = decoder->info.bounds;
-  return create_image_decoder(env, (jlong) decoder, bounds.width, bounds.height);
+  return create_image_decoder(env, (jlong)decoder, bounds.width, bounds.height);
 }
 
-extern "C"
-JNIEXPORT jobject JNICALL
+extern "C" JNIEXPORT jobject JNICALL
 Java_tachiyomi_decoder_ImageDecoder_nativeDecode(
-  JNIEnv* env, jobject, jlong decoderPtr, jboolean rgb565, jint sampleSize,
-  jint x, jint y, jint width, jint height
-) {
-  auto* decoder = (BaseDecoder*) decoderPtr;
+    JNIEnv* env, jobject, jlong decoderPtr, jboolean rgb565, jint sampleSize,
+    jint x, jint y, jint width, jint height) {
+  auto* decoder = (BaseDecoder*)decoderPtr;
 
-  // Bounds of the image when crop borders is enabled, otherwise it matches the entire image.
+  // Bounds of the image when crop borders is enabled, otherwise it matches the
+  // entire image.
   Rect bounds = decoder->info.bounds;
 
   // Translated requested bounds to the original image.
-  Rect inRect = {
-    x + bounds.x,
-    y + bounds.y,
-    (uint32_t) width,
-    (uint32_t) height
-  };
+  Rect inRect = {x + bounds.x, y + bounds.y, (uint32_t)width, (uint32_t)height};
 
   // Sampled requested bounds according to sampleSize.
   // It matches the translated bounds when the value is 1
@@ -101,12 +99,13 @@ Java_tachiyomi_decoder_ImageDecoder_nativeDecode(
 
   auto* bitmap = create_bitmap(env, outRect.width, outRect.height, rgb565);
   if (!bitmap) {
-    LOGE("Failed to create a bitmap of size %dx%dx%d", outRect.width, outRect.height, rgb565 ? 2 : 4);
+    LOGE("Failed to create a bitmap of size %dx%dx%d", outRect.width,
+         outRect.height, rgb565 ? 2 : 4);
     return nullptr;
   }
 
   uint8_t* pixels;
-  AndroidBitmap_lockPixels(env, bitmap, (void**) &pixels);
+  AndroidBitmap_lockPixels(env, bitmap, (void**)&pixels);
   if (!pixels) {
     LOGE("Failed to lock pixels");
     return nullptr;
@@ -114,28 +113,48 @@ Java_tachiyomi_decoder_ImageDecoder_nativeDecode(
 
   try {
     decoder->decode(pixels, outRect, inRect, rgb565, sampleSize);
-  } catch (std::exception &ex) {
+  } catch (std::exception& ex) {
     LOGE("%s", ex.what());
     AndroidBitmap_unlockPixels(env, bitmap);
     return nullptr;
   }
 
+#ifdef HAVE_LCMS
+  if (!rgb565 && !decoder->info.icc_profile.empty()) {
+    try {
+      auto src_profile = cmsOpenProfileFromMem(
+          decoder->info.icc_profile.data(), decoder->info.icc_profile.size());
+      auto target_profile = cmsCreate_sRGBProfile();
+
+      auto transform =
+          cmsCreateTransform(src_profile, TYPE_RGBA_8, target_profile,
+                             TYPE_RGBA_8, INTENT_PERCEPTUAL, 0);
+
+      cmsDoTransform(transform, pixels, pixels, outRect.width * outRect.height);
+
+      cmsCloseProfile(src_profile);
+      cmsCloseProfile(target_profile);
+      cmsDeleteTransform(transform);
+    } catch (std::exception& ex) {
+      LOGE("%s", ex.what());
+    }
+  }
+#endif
+
   AndroidBitmap_unlockPixels(env, bitmap);
   return bitmap;
 }
 
-extern "C"
-JNIEXPORT void JNICALL
-Java_tachiyomi_decoder_ImageDecoder_nativeRecycle(JNIEnv*, jobject, jlong decoderPtr) {
-  auto* decoder = (BaseDecoder*) decoderPtr;
+extern "C" JNIEXPORT void JNICALL
+Java_tachiyomi_decoder_ImageDecoder_nativeRecycle(JNIEnv*, jobject,
+                                                  jlong decoderPtr) {
+  auto* decoder = (BaseDecoder*)decoderPtr;
   delete decoder;
 }
 
-extern "C"
-JNIEXPORT jobject JNICALL
-Java_tachiyomi_decoder_ImageDecoder_nativeFindType(
-  JNIEnv* env, jclass, jbyteArray array
-) {
+extern "C" JNIEXPORT jobject JNICALL
+Java_tachiyomi_decoder_ImageDecoder_nativeFindType(JNIEnv* env, jclass,
+                                                   jbyteArray array) {
   uint32_t toRead = 32;
   uint32_t size = env->GetArrayLength(array);
 
@@ -146,7 +165,7 @@ Java_tachiyomi_decoder_ImageDecoder_nativeFindType(
 
   auto _bytes = std::make_unique<uint8_t[]>(toRead);
   auto bytes = _bytes.get();
-  env->GetByteArrayRegion(array, 0, toRead, (jbyte*) bytes);
+  env->GetByteArrayRegion(array, 0, toRead, (jbyte*)bytes);
 
   if (is_jpeg(bytes)) {
     return create_image_type(env, 0, false);
@@ -155,12 +174,13 @@ Java_tachiyomi_decoder_ImageDecoder_nativeFindType(
   } else if (is_webp(bytes)) {
     try {
 #ifdef HAVE_LIBWEBP
-      auto decoder = std::make_unique<WebpDecoder>(std::make_shared<Stream>(bytes, size), false);
+      auto decoder = std::make_unique<WebpDecoder>(
+          std::make_shared<Stream>(bytes, size), false);
       return create_image_type(env, 2, decoder->info.isAnimated);
 #else
       throw std::runtime_error("WebP decoder not available");
 #endif
-    } catch (std::exception &ex) {
+    } catch (std::exception& ex) {
       LOGW("Failed to parse WebP header. Falling back to non animated WebP");
       return create_image_type(env, 2, false);
     }
@@ -171,9 +191,12 @@ Java_tachiyomi_decoder_ImageDecoder_nativeFindType(
   }
 
   switch (get_ftyp_image_type(bytes, toRead)) {
-    case ftyp_image_type_heif: return create_image_type(env, 4, false);
-    case ftyp_image_type_avif: return create_image_type(env, 5, false);
-    case ftyp_image_type_no: break;
+  case ftyp_image_type_heif:
+    return create_image_type(env, 4, false);
+  case ftyp_image_type_avif:
+    return create_image_type(env, 5, false);
+  case ftyp_image_type_no:
+    break;
   }
 
   LOGW("Failed to find image type");
