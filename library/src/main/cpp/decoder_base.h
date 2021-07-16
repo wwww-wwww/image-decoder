@@ -5,8 +5,9 @@
 #ifndef IMAGEDECODER_DECODER_BASE_H
 #define IMAGEDECODER_DECODER_BASE_H
 
-#include "java_stream.h"
 #include "borders.h"
+#include "java_stream.h"
+#include <include/lcms2.h>
 #include <vector>
 
 struct ImageInfo {
@@ -14,7 +15,6 @@ struct ImageInfo {
   uint32_t imageHeight;
   bool isAnimated;
   Rect bounds;
-  std::vector<uint8_t> icc_profile;
 };
 
 class BaseDecoder {
@@ -23,9 +23,15 @@ public:
     this->stream = std::move(stream);
     this->cropBorders = cropBorders;
   }
-  virtual ~BaseDecoder() {};
+  virtual ~BaseDecoder() {
+    if (transform) {
+      cmsDeleteTransform(transform);
+    }
+  };
 
-  virtual void decode(uint8_t* outPixels, Rect outRect, Rect inRect, bool rgb565, uint32_t sampleSize) = 0;
+  virtual void decode(uint8_t* outPixels, Rect outRect, Rect inRect,
+                      bool rgb565, uint32_t sampleSize,
+                      cmsHPROFILE target_profile) = 0;
 
 protected:
   std::shared_ptr<Stream> stream;
@@ -33,6 +39,8 @@ protected:
 public:
   bool cropBorders;
   ImageInfo info;
+  cmsHTRANSFORM transform = nullptr;
+  bool useTransform = false;
 };
 
-#endif //IMAGEDECODER_DECODER_BASE_H
+#endif // IMAGEDECODER_DECODER_BASE_H

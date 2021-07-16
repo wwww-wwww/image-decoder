@@ -6,17 +6,21 @@
 #define IMAGEDECODER_DECODER_HEIF_H
 
 #include "decoder_base.h"
+#include <libheif/heif.h>
+#include <libheif/heif_cxx.h>
 
 bool is_libheif_compatible(const uint8_t* bytes, uint32_t size);
 
-class HeifDecoder: public BaseDecoder {
+class HeifDecoder : public BaseDecoder {
 public:
-    HeifDecoder(std::shared_ptr<Stream>&& stream, bool cropBorders);
+  HeifDecoder(std::shared_ptr<Stream>&& stream, bool cropBorders);
 
-    void decode(uint8_t* outPixels, Rect outRect, Rect inRect, bool rgb565, uint32_t sampleSize);
+  void decode(uint8_t* outPixels, Rect outRect, Rect inRect, bool rgb565,
+              uint32_t sampleSize, cmsHPROFILE target_profile);
 
 private:
-    ImageInfo parseInfo();
+  ImageInfo parseInfo();
+  cmsHPROFILE getColorProfile(heif::ImageHandle handle);
 };
 
-#endif //IMAGEDECODER_DECODER_HEIF_H
+#endif // IMAGEDECODER_DECODER_HEIF_H
