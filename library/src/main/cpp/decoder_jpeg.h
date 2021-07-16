@@ -5,11 +5,11 @@
 #ifndef IMAGEDECODER_DECODER_JPEG_H
 #define IMAGEDECODER_DECODER_JPEG_H
 
-#include <stdio.h>
-#include <memory>
 #include "decoder_base.h"
 #include "jpeglib.h"
 #include "log.h"
+#include <memory>
+#include <stdio.h>
 
 // Wrap the JPEG C API in this class to automatically manage memory
 class JpegDecodeSession {
@@ -23,16 +23,17 @@ public:
   void init(Stream* stream);
 };
 
-class JpegDecoder: public BaseDecoder {
+class JpegDecoder : public BaseDecoder {
 public:
   JpegDecoder(std::shared_ptr<Stream>&& stream, bool cropBorders);
 
-  void decode(uint8_t *outPixels, Rect outRect, Rect srcRegion, bool rgb565,
-              uint32_t sampleSize);
+  void decode(uint8_t* outPixels, Rect outRect, Rect srcRegion, bool rgb565,
+              uint32_t sampleSize, cmsHPROFILE target_profile);
 
 private:
   ImageInfo parseInfo();
   std::unique_ptr<JpegDecodeSession> initDecodeSession();
+  cmsHPROFILE getColorProfile(jpeg_decompress_struct* jinfo);
 };
 
-#endif //IMAGEDECODER_DECODER_JPEG_H
+#endif // IMAGEDECODER_DECODER_JPEG_H
