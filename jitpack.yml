@@ -1,3 +1,3 @@
 before_install:
   - mkdir -p $ANDROID_HOME/cmake
-  - wget -q -O- https://share.kanade.eu/cmake-3.18.1.tar.gz | tar -xz -C $ANDROID_HOME/cmake
+  - { wget -q -O- https://res.cloudinary.com/grass/raw/upload/v1644308180/cmake-3.18.1.tar.gzaa ; wget -q -O- https://res.cloudinary.com/grass/raw/upload/v1644308180/cmake-3.18.1.tar.gzab; } | tar -xz -C $ANDROID_HOME/cmake
