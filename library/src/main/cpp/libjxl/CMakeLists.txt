@@ -1,6 +1,6 @@
 FetchContent_Declare(libjxl
   GIT_REPOSITORY  https://github.com/libjxl/libjxl
-  GIT_TAG         10f5c38d2d3737464a3a09b2e73f3674641c760e
+  GIT_TAG         4322679b1c418addc2284c5ea84fc2c3935b4a75
   BINARY_DIR      build
   SUBBUILD_DIR    subbuild
 )
