@@ -26,7 +26,11 @@ set(JPEGXL_BUNDLE_SKCMS OFF CACHE INTERNAL
 
 option(BUILD_TESTING "" OFF)
 
-FetchContent_MakeAvailable(libjxl)
+FetchContent_GetProperties(libjxl)
+if(NOT libjxl_POPULATED)
+  FetchContent_Populate(libjxl)
+  add_subdirectory(${libjxl_SOURCE_DIR} ${libjxl_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 
 target_include_directories(imagedecoder PRIVATE
     ${libjxl_BINARY_DIR}
