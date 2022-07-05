@@ -10,6 +10,7 @@
 #include <jxl/decode_cxx.h>
 #include <jxl/resizable_parallel_runner.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
+#include <vector>
 
 class JpegxlDecoder : public BaseDecoder {
 public:
@@ -19,6 +20,10 @@ public:
               uint32_t sampleSize);
 
 private:
+  void decode();
+  std::vector<uint8_t> pixels;
+  JxlBasicInfo jxl_info;
+
   ImageInfo parseInfo();
 };
 
