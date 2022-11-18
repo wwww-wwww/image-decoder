@@ -39,7 +39,8 @@ ImageInfo WebpDecoder::parseInfo() {
   return ImageInfo{.imageWidth = imageWidth,
                    .imageHeight = imageHeight,
                    .isAnimated = isAnimated,
-                   .bounds = bounds};
+                   .bounds = bounds,
+                   .hasAlpha = false};
 }
 
 cmsHPROFILE WebpDecoder::getColorProfile() {

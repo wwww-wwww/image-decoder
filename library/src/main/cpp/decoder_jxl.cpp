@@ -131,7 +131,8 @@ ImageInfo JpegxlDecoder::parseInfo() {
   return ImageInfo{.imageWidth = jxl_info.xsize,
                    .imageHeight = jxl_info.ysize,
                    .isAnimated = false, // (bool)jxl_info.have_animation,
-                   .bounds = bounds};
+                   .bounds = bounds,
+                   .hasAlpha = jxl_info.num_color_channels % 2 == 0};
 }
 
 void JpegxlDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,

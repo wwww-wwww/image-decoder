@@ -15,6 +15,7 @@ struct ImageInfo {
   uint32_t imageHeight;
   bool isAnimated;
   Rect bounds;
+  bool hasAlpha;
 };
 
 class BaseDecoder {

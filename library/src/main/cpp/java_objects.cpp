@@ -9,6 +9,8 @@ static jmethodID imageDecoderCtor;
 static jclass imageTypeCls;
 static jmethodID imageTypeCtor;
 static jmethodID createBitmapMethod;
+static jclass bitmapCls;
+static jmethodID setHasAlphaMethod;
 
 void init_java_objects(JNIEnv* env) {
   jclass tmpCls;
@@ -23,6 +25,10 @@ void init_java_objects(JNIEnv* env) {
 
   createBitmapMethod = env->GetStaticMethodID(imageDecoderCls, "createBitmap", "(IIZ)Landroid/graphics/Bitmap;");
 
+  tmpCls = env->FindClass("android/graphics/Bitmap");
+  bitmapCls = (jclass) env->NewGlobalRef(tmpCls);
+  setHasAlphaMethod = env->GetMethodID(bitmapCls, "setHasAlpha", "(Z)V");
+
   env->DeleteLocalRef(tmpCls);
 }
 
@@ -32,6 +38,10 @@ jobject create_image_decoder(JNIEnv* env, jlong decoderPtr, jint width, jint hei
 
 jobject create_bitmap(JNIEnv* env, jint width, jint height, jboolean rgb565) {
   return env->CallStaticObjectMethod(imageDecoderCls, createBitmapMethod, width, height, rgb565);
+}
+
+void set_alpha(JNIEnv* env, jobject bitmap, jboolean alpha) {
+  env->CallVoidMethod(bitmap, setHasAlphaMethod, alpha);
 }
 
 jobject create_image_type(JNIEnv* env, jint format, jboolean isAnimated) {

@@ -108,7 +108,8 @@ ImageInfo PngDecoder::parseInfo() {
   return ImageInfo{.imageWidth = imageWidth,
                    .imageHeight = imageHeight,
                    .isAnimated = false,
-                   .bounds = bounds};
+                   .bounds = bounds,
+                   .hasAlpha = false};
 }
 
 cmsHPROFILE PngDecoder::getColorProfile(png_struct* png, png_info* pinfo,

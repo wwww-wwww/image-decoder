@@ -47,6 +47,7 @@ ImageInfo HeifDecoder::parseInfo() {
       .imageHeight = imageHeight,
       .isAnimated = false,
       .bounds = bounds,
+      .hasAlpha = false,
   };
 }
 
