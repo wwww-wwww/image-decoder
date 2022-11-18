@@ -104,6 +104,10 @@ Java_tachiyomi_decoder_ImageDecoder_nativeDecode(
     return nullptr;
   }
 
+  if (decoder->info.hasAlpha) {
+    set_alpha(env, bitmap, true);
+  }
+
   uint8_t* pixels;
   AndroidBitmap_lockPixels(env, bitmap, (void**)&pixels);
   if (!pixels) {

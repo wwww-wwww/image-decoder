@@ -15,4 +15,6 @@ jobject create_bitmap(JNIEnv* env, jint width, jint height, jboolean rgb565);
 
 jobject create_image_type(JNIEnv* env, jint format, jboolean isAnimated);
 
+void set_alpha(JNIEnv* env, jobject bitmap, jboolean alpha);
+
 #endif //IMAGEDECODER_JAVA_OBJECTS_H
