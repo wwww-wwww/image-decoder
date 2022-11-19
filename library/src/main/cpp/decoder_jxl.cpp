@@ -90,6 +90,15 @@ void JpegxlDecoder::decode() {
     } else if (status == JXL_DEC_FULL_IMAGE) {
       break;
     } else if (status == JXL_DEC_SUCCESS) {
+      // vardct images with transparency look different when the
+      // alpha channel is dropped
+      if (!jxl_info.uses_original_profile && jxl_info.alpha_bits != 0) {
+        for (size_t i = 0; i < pixels.size(); i += 4) {
+          pixels[i] *= pixels[i + 3];
+          pixels[i + 1] *= pixels[i + 3];
+          pixels[i + 2] *= pixels[i + 3];
+        }
+      }
       break;
     } else {
       LOGW("Unexpected decoder status");
