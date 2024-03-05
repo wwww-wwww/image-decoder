@@ -12,6 +12,10 @@
 #include <jni.h>
 #include <vector>
 
+#ifdef HAVE_LIBJXL
+#include "encoder_jxl.h"
+#endif
+
 jint JNI_OnLoad(JavaVM* vm, void*) {
   JNIEnv* env;
   if (vm->GetEnv((void**)&env, JNI_VERSION_1_6) == JNI_OK) {
@@ -216,5 +220,21 @@ Java_tachiyomi_decoder_ImageDecoder_nativeFindType(JNIEnv* env, jclass,
   }
 
   LOGW("Failed to find image type");
+  return nullptr;
+}
+
+extern "C" JNIEXPORT jobject JNICALL
+Java_tachiyomi_decoder_ImageDecoder_nativeEncodeJxl(JNIEnv* env, jclass,
+                                                    jbyteArray array,
+                                                    jint jquality) {
+#ifdef HAVE_LIBJXL
+  uint32_t size = env->GetArrayLength(array);
+
+  auto bytes = std::vector<uint8_t>(size);
+  auto bytes_ptr = bytes.data();
+  env->GetByteArrayRegion(array, 0, size, (jbyte*)bytes_ptr);
+
+  uint32_t quality = (uint32_)jquality;
+#endif
   return nullptr;
 }

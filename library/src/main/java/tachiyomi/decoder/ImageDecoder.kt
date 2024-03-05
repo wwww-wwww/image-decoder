@@ -120,6 +120,9 @@ class ImageDecoder private constructor(
     private external fun nativeFindType(bytes: ByteArray): ImageType?
 
     @JvmStatic
+    private external fun nativeEncodeJxl(bytes: ByteArray, quality: Integer): ByteArray?
+
+    @JvmStatic
     private fun createBitmap(width: Int, height: Int): Bitmap? {
       return try {
         Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
