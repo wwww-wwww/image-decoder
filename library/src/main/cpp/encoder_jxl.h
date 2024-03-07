@@ -72,6 +72,7 @@ bool jxl_encode(const uint8_t* pixels, const uint32_t xsize,
   JxlEncoderSetFrameLossless(opts, distance == 0);
   JxlEncoderSetFrameDistance(opts, distance);
   JxlEncoderFrameSettingsSetOption(opts, JXL_ENC_FRAME_SETTING_EFFORT, 6);
+  JxlEncoderFrameSettingsSetOption(opts, JXL_ENC_FRAME_SETTING_BUFFERING, 2);
 
   if (JXL_ENC_SUCCESS !=
       JxlEncoderAddImageFrame(opts, &pixel_format,

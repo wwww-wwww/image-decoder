@@ -32,6 +32,9 @@ public:
     if (targetProfile) {
       cmsCloseProfile(targetProfile);
     }
+    if (srcProfile) {
+      cmsCloseProfile(srcProfile);
+    }
   };
 
   virtual void decode(uint8_t* outPixels, Rect outRect, Rect inRect,
@@ -43,6 +46,7 @@ protected:
 public:
   bool cropBorders;
   cmsHPROFILE targetProfile = nullptr;
+  cmsHPROFILE srcProfile;
   ImageInfo info;
   cmsHTRANSFORM transform = nullptr;
   bool useTransform = false;

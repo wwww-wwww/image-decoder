@@ -237,6 +237,9 @@ Java_tachiyomi_decoder_ImageDecoder_nativeEncodeJxl(JNIEnv* env, jclass,
   std::unique_ptr<BaseDecoder> decoder;
   uint8_t* input;
   size_t input_size;
+  std::vector<uint8_t> srcProfile;
+  uint8_t* srcProfilePtr = nullptr;
+  size_t srcProfileSize = 0;
 
   LOGW("encoder create decoder");
   // if (is_jpeg(stream->bytes)) {
@@ -294,21 +297,26 @@ Java_tachiyomi_decoder_ImageDecoder_nativeEncodeJxl(JNIEnv* env, jclass,
 
     memcpy(pixels, pout_buffer, rect.width * rect.height * components);
 
+    if (decoder->srcProfile) {
+      cmsUInt32Number profileSize;
+      cmsSaveProfileToMem(decoder->srcProfile, NULL, &profileSize);
+      srcProfile.resize(profileSize);
+      cmsSaveProfileToMem(decoder->srcProfile, srcProfile.data(), &profileSize);
+      srcProfilePtr = srcProfile.data();
+      srcProfileSize = srcProfile.size();
+    }
+
     input = pixels;
     input_size = im_buf.size();
   } else {
     input = stream->bytes;
     input_size = stream->size;
   }
+
   LOGW("encoder encode");
 
-  //cmsUInt32Number profileSize;
-  //cmsSaveProfileToMem(srcProfile, NULL, &profileSize);
-  //std::vector<uint8_t> profile(profileSize);
-  //cmsSaveProfileToMem(srcProfile, profile.data(), &profileSize);
-
   if (!jxl_encode(input, rect.width, rect.height, components, distance,
-                  nullptr, 0, &compressed))
+                  srcProfilePtr, srcProfileSize, &compressed))
     return JNI_FALSE;
 
   LOGW("encoder finished encode size %zu", compressed.size());
