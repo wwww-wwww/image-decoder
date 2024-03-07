@@ -101,7 +101,7 @@ cmsHPROFILE JpegDecoder::getColorProfile(jpeg_decompress_struct* jinfo) {
 }
 
 void JpegDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
-                         uint32_t sampleSize) {
+                         uint32_t sampleSize, bool nativeFormat) {
   auto session = initDecodeSession();
   auto* jinfo = &session->jinfo;
 

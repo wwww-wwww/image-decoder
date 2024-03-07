@@ -1,6 +1,6 @@
 FetchContent_Declare(libjxl
   GIT_REPOSITORY https://github.com/libjxl/libjxl
-  GIT_TAG v0.10.0
+  GIT_TAG v0.10.1
   BINARY_DIR build
   SUBBUILD_DIR subbuild
 )
@@ -11,7 +11,7 @@ option(JPEGXL_ENABLE_MANPAGES "" OFF)
 option(JPEGXL_ENABLE_EXAMPLES "" OFF)
 option(JPEGXL_ENABLE_SJPEG "" OFF)
 option(JPEGXL_ENABLE_OPENEXR "" OFF)
-option(JPEGXL_ENABLE_TRANSCODE_JPEG "" OFF)
+option(JPEGXL_ENABLE_TRANSCODE_JPEG "" ON)
 option(JPEGXL_ENABLE_TOOLS "" OFF)
 option(JPEGXL_ENABLE_BENCHMARK "" OFF)
 option(JPEGXL_ENABLE_JPEGLI "" OFF)
@@ -33,6 +33,7 @@ target_include_directories(imagedecoder PRIVATE
 )
 
 target_link_libraries(imagedecoder
+  jxl
   jxl_dec
   jxl_threads
   brotlidec

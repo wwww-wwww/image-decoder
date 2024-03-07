@@ -3,6 +3,7 @@ package tachiyomi.decoder
 import android.graphics.Bitmap
 import android.graphics.Rect
 import java.io.InputStream
+import java.io.OutputStream
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
@@ -101,7 +102,7 @@ class ImageDecoder private constructor(
       stream: InputStream,
       cropBorders: Boolean = false,
       displayProfile: ByteArray? = null,
-    ) : ImageDecoder? {
+    ): ImageDecoder? {
       return stream.use { nativeNewInstance(it, cropBorders, displayProfile) }
     }
 
@@ -109,18 +110,25 @@ class ImageDecoder private constructor(
       return nativeFindType(bytes)
     }
 
+    fun encodeJxl(stream: InputStream, quality: Float, outStream: OutputStream): Boolean {
+      return nativeEncodeJxl(stream, quality, outStream);
+    }
+
     @JvmStatic
     private external fun nativeNewInstance(
       stream: InputStream,
       cropBorders: Boolean = false,
       displayProfile: ByteArray?,
-    ) : ImageDecoder?
+    ): ImageDecoder?
 
     @JvmStatic
     private external fun nativeFindType(bytes: ByteArray): ImageType?
 
     @JvmStatic
-    private external fun nativeEncodeJxl(bytes: ByteArray, quality: Integer): ByteArray?
+    private external fun nativeEncodeJxl(
+      stream: InputStream, quality: Float,
+      outStream: OutputStream
+    ): Boolean
 
     @JvmStatic
     private fun createBitmap(width: Int, height: Int): Bitmap? {

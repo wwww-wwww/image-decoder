@@ -141,7 +141,7 @@ cmsHPROFILE PngDecoder::getColorProfile(png_struct* png, png_info* pinfo,
 }
 
 void PngDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
-                        uint32_t sampleSize) {
+                        uint32_t sampleSize, bool nativeFormat) {
   auto session = initDecodeSession();
   auto png = session->png;
   auto pinfo = session->pinfo;
@@ -156,51 +156,62 @@ void PngDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
   }
 
   cmsHPROFILE src_profile = getColorProfile(png, pinfo, colorType);
-  if (!src_profile) {
-    src_profile = cmsCreate_sRGBProfile();
-    inType = TYPE_RGBA_8;
-
-    if (colorType == PNG_COLOR_TYPE_GRAY ||
-        colorType == PNG_COLOR_TYPE_GRAY_ALPHA) {
-      png_set_gray_to_rgb(png);
-    }
-  } else {
-    if (colorType == PNG_COLOR_TYPE_GRAY_ALPHA ||
-        colorType == PNG_COLOR_TYPE_GRAY) {
-      inType = TYPE_GRAYA_8;
-    } else {
+  if (!nativeFormat) {
+    if (!src_profile) {
+      src_profile = cmsCreate_sRGBProfile();
       inType = TYPE_RGBA_8;
+
+      if (colorType == PNG_COLOR_TYPE_GRAY ||
+          colorType == PNG_COLOR_TYPE_GRAY_ALPHA) {
+        png_set_gray_to_rgb(png);
+      }
+    } else {
+      if (colorType == PNG_COLOR_TYPE_GRAY_ALPHA ||
+          colorType == PNG_COLOR_TYPE_GRAY) {
+        inType = TYPE_GRAYA_8;
+      } else {
+        inType = TYPE_RGBA_8;
+      }
     }
+
+    if (!(colorType & PNG_COLOR_MASK_ALPHA)) {
+      png_set_add_alpha(png, 0xff, PNG_FILLER_AFTER);
+    }
+
+    cmsColorSpaceSignature profileSpace = cmsGetColorSpace(src_profile);
+
+    useTransform = true;
+
+    transform = cmsCreateTransform(
+        src_profile, inType, targetProfile, TYPE_RGBA_8,
+        cmsGetHeaderRenderingIntent(src_profile), cmsFLAGS_COPY_ALPHA);
+
+    cmsCloseProfile(src_profile);
   }
-
-  if (!(colorType & PNG_COLOR_MASK_ALPHA)) {
-    png_set_add_alpha(png, 0xff, PNG_FILLER_AFTER);
-  }
-
-  cmsColorSpaceSignature profileSpace = cmsGetColorSpace(src_profile);
-
-  useTransform = true;
-
-  transform = cmsCreateTransform(
-      src_profile, inType, targetProfile, TYPE_RGBA_8,
-      cmsGetHeaderRenderingIntent(src_profile), cmsFLAGS_COPY_ALPHA);
-
-  cmsCloseProfile(src_profile);
 
   int32_t passes = png_set_interlace_handling(png);
 
   png_read_update_info(png, pinfo);
 
   uint32_t inComponents = png_get_channels(png, pinfo);
+
+  if (nativeFormat) {
+    if (inComponents == 1) {
+      inType = TYPE_GRAY_8;
+    } else if (inComponents == 2) {
+      inType = TYPE_GRAYA_8;
+    } else if (inComponents == 3) {
+      inType = TYPE_RGB_8;
+    } else if (inComponents == 4) {
+      inType = TYPE_RGBA_8;
+    }
+  }
+
   uint32_t inStride = info.imageWidth * inComponents;
   uint32_t inStrideOffset = inRect.x * inComponents;
 
   uint8_t* outPixelsPos = outPixels;
   uint32_t outStride = outRect.width * inComponents;
-
-  auto rowFn = inComponents == 1   ? &GRAY8_to_GRAY8_row
-               : inComponents == 2 ? &GRAYA88_to_GRAYA88_row
-                                   : &RGBA8888_to_RGBA8888_row;
 
   if (sampleSize == 1) {
     uint32_t inRemainY = info.imageHeight - inRect.height - inRect.y;
@@ -239,6 +250,10 @@ void PngDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
       }
     }
   } else {
+    auto rowFn = inComponents == 1   ? &GRAY8_to_GRAY8_row
+                 : inComponents == 2 ? &GRAYA88_to_GRAYA88_row
+                                     : &RGBA8888_to_RGBA8888_row;
+
     uint32_t skipStart = (sampleSize - 2) / 2;
     uint32_t skipEnd = sampleSize - 2 - skipStart;
 

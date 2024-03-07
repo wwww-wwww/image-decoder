@@ -223,18 +223,99 @@ Java_tachiyomi_decoder_ImageDecoder_nativeFindType(JNIEnv* env, jclass,
   return nullptr;
 }
 
-extern "C" JNIEXPORT jobject JNICALL
+extern "C" JNIEXPORT jboolean JNICALL
 Java_tachiyomi_decoder_ImageDecoder_nativeEncodeJxl(JNIEnv* env, jclass,
-                                                    jbyteArray array,
-                                                    jint jquality) {
-#ifdef HAVE_LIBJXL
-  uint32_t size = env->GetArrayLength(array);
+                                                    jobject jstream,
+                                                    jfloat jdistance,
+                                                    jobject joutstream) {
+  LOGW("encoder Java_tachiyomi_decoder_ImageDecoder_nativeEncodeJxl");
+  auto stream = read_all_java_stream(env, jstream);
+  float distance = (float)jdistance;
 
-  auto bytes = std::vector<uint8_t>(size);
-  auto bytes_ptr = bytes.data();
-  env->GetByteArrayRegion(array, 0, size, (jbyte*)bytes_ptr);
+  std::vector<uint8_t> compressed;
 
-  uint32_t quality = (uint32_)jquality;
-#endif
-  return nullptr;
+  std::unique_ptr<BaseDecoder> decoder;
+  uint8_t* input;
+  size_t input_size;
+
+  LOGW("encoder create decoder");
+  // if (is_jpeg(stream->bytes)) {
+  //   if (quality != 100) {
+  //     // decoder = std::make_unique<JpegDecoder>(std::move(stream), false,
+  //     nullptr);
+  //   }
+  // } else
+  if (is_png(stream->bytes)) {
+    LOGW("encoder DECODE PNG");
+    decoder = std::make_unique<PngDecoder>(std::move(stream), false, nullptr);
+    //} else if (is_webp(stream->bytes)) {
+    //  // decoder = std::make_unique<WebpDecoder>(std::move(stream), false,
+    //  nullptr);
+    //} else if (is_libheif_compatible(stream->bytes, stream->size)) {
+    //  // decoder = std::make_unique<HeifDecoder>(std::move(stream), false,
+    //  nullptr);
+    //} else if (is_jxl(stream->bytes)) {
+    //  // decoder = std::make_unique<JpegxlDecoder>(std::move(stream), false,
+    //  nullptr);
+  } else {
+    return JNI_FALSE;
+  }
+
+  Rect rect{0, 0, 0, 0};
+
+  std::vector<uint8_t> im_buf;
+  uint8_t components;
+  LOGW("encoder decode");
+
+  if (decoder) {
+    auto info = decoder->info;
+    rect.width = info.imageWidth, rect.height = info.imageHeight;
+
+    std::vector<uint8_t> out_buffer(rect.width * rect.height * 4);
+    uint8_t* pout_buffer = out_buffer.data();
+
+    decoder->decode(pout_buffer, rect, rect, 1, true);
+
+    if (decoder->inType == TYPE_GRAY_8) {
+      components = 1;
+    } else if (decoder->inType == TYPE_GRAYA_8) {
+      components = 2;
+    } else if (decoder->inType == TYPE_RGB_8) {
+      components = 3;
+    } else if (decoder->inType == TYPE_RGBA_8) {
+      components = 4;
+    }
+
+    if (components != 3)
+      return JNI_FALSE;
+
+    im_buf.resize(rect.width * rect.height * components);
+    uint8_t* pixels = im_buf.data();
+
+    memcpy(pixels, pout_buffer, rect.width * rect.height * components);
+
+    input = pixels;
+    input_size = im_buf.size();
+  } else {
+    input = stream->bytes;
+    input_size = stream->size;
+  }
+  LOGW("encoder encode");
+
+  //cmsUInt32Number profileSize;
+  //cmsSaveProfileToMem(srcProfile, NULL, &profileSize);
+  //std::vector<uint8_t> profile(profileSize);
+  //cmsSaveProfileToMem(srcProfile, profile.data(), &profileSize);
+
+  if (!jxl_encode(input, rect.width, rect.height, components, distance,
+                  nullptr, 0, &compressed))
+    return JNI_FALSE;
+
+  LOGW("encoder finished encode size %zu", compressed.size());
+
+  if (!write_all_java_stream(env, joutstream, compressed.data(),
+                             compressed.size()))
+    return JNI_FALSE;
+
+  return JNI_TRUE;
 }

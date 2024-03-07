@@ -151,7 +151,7 @@ ImageInfo JpegxlDecoder::parseInfo() {
 }
 
 void JpegxlDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
-                           uint32_t sampleSize) {
+                           uint32_t sampleSize, bool nativeFormat) {
   decode();
 
   // Save transformed pixel data.

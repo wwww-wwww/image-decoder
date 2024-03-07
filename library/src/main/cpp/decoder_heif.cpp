@@ -79,7 +79,7 @@ cmsHPROFILE HeifDecoder::getColorProfile(heif::ImageHandle handle) {
 }
 
 void HeifDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
-                         uint32_t sampleSize) {
+                         uint32_t sampleSize, bool nativeFormat) {
   // Decode full image (regions, subsamples or row by row are not supported
   // sadly)
   heif::Image img;

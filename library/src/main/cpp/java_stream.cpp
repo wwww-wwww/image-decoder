@@ -3,18 +3,26 @@
 //
 
 #include "java_stream.h"
+#include <algorithm>
 
 #define BUFFER_SIZE 8192
 #define CONTAINER_DEFAULT_SIZE (BUFFER_SIZE * 50)
 
 static jmethodID readMethod;
 static jmethodID availableMethod;
+static jmethodID writeMethod;
+static jmethodID flushMethod;
 
 void init_java_stream(JNIEnv* env) {
   jclass streamCls = env->FindClass("java/io/InputStream");
   readMethod = env->GetMethodID(streamCls, "read", "([BII)I");
   availableMethod = env->GetMethodID(streamCls, "available", "()I");
   env->DeleteLocalRef(streamCls);
+
+  jclass outputCls = env->FindClass("java/io/OutputStream");
+  writeMethod = env->GetMethodID(outputCls, "write", "([B)V");
+  flushMethod = env->GetMethodID(outputCls, "flush", "()V");
+  env->DeleteLocalRef(outputCls);
 }
 
 std::shared_ptr<Stream> read_all_java_stream(JNIEnv* env, jobject jstream) {
@@ -82,4 +90,31 @@ std::shared_ptr<Stream> read_all_java_stream(JNIEnv* env, jobject jstream) {
 fail:
   free(stream);
   return nullptr;
+}
+
+bool write_all_java_stream(JNIEnv* env, jobject jstream, const uint8_t* bytes,
+                           size_t size) {
+  for (size_t i = 0; i < size; i += BUFFER_SIZE) {
+    size_t chunkSize = std::min<size_t>(size - i, BUFFER_SIZE);
+
+    jbyteArray byteArray = env->NewByteArray(chunkSize);
+    if (!byteArray) {
+      throw std::domain_error("encoder failed to allocate byte array");
+    }
+
+    env->SetByteArrayRegion(byteArray, 0, chunkSize,
+                            reinterpret_cast<const jbyte*>(bytes));
+    env->CallVoidMethod(jstream, writeMethod, byteArray);
+    env->DeleteLocalRef(byteArray);
+
+    if (env->ExceptionCheck()) {
+      env->ExceptionClear();
+      return false;
+    }
+
+    bytes += chunkSize;
+  }
+
+  env->CallVoidMethod(jstream, flushMethod);
+  return true;
 }
