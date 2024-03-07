@@ -289,9 +289,6 @@ Java_tachiyomi_decoder_ImageDecoder_nativeEncodeJxl(JNIEnv* env, jclass,
       components = 4;
     }
 
-    if (components != 3)
-      return JNI_FALSE;
-
     im_buf.resize(rect.width * rect.height * components);
     uint8_t* pixels = im_buf.data();
 

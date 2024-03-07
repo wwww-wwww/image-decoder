@@ -18,6 +18,8 @@ bool jxl_encode(const uint8_t* pixels, const uint32_t xsize,
                 const uint32_t ysize, const uint8_t components,
                 const float distance, const uint8_t* icc_profile,
                 size_t icc_profile_size, std::vector<uint8_t>* compressed) {
+  LOGW("encoder jxl_encode components %d xsize %d ysize %d distance %f icc %d",
+       components, xsize, ysize, distance, icc_profile != nullptr);
   auto enc = JxlEncoderMake(/*memory_manager=*/nullptr);
 
   auto runner = JxlThreadParallelRunnerMake(
@@ -35,11 +37,25 @@ bool jxl_encode(const uint8_t* pixels, const uint32_t xsize,
 
   JxlBasicInfo basic_info;
   JxlEncoderInitBasicInfo(&basic_info);
+
+  // only 8 bit input
   basic_info.bits_per_sample = 8;
   basic_info.exponent_bits_per_sample = 0;
-  basic_info.num_color_channels = 3;
   basic_info.alpha_exponent_bits = 0;
-  basic_info.alpha_bits = 0;
+
+  if (components < 3) {
+    basic_info.num_color_channels = 1;
+  } else {
+    basic_info.num_color_channels = 3;
+  }
+
+  if (components == 2 || components == 4) {
+    basic_info.alpha_bits = 8;
+    basic_info.num_extra_channels = 1;
+  } else {
+    basic_info.alpha_bits = 0;
+  }
+
   basic_info.xsize = xsize;
   basic_info.ysize = ysize;
   basic_info.uses_original_profile = distance == 0;
