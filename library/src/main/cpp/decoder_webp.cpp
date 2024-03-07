@@ -86,21 +86,23 @@ void WebpDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
   WebPDecoderConfig config;
   WebPInitDecoderConfig(&config);
 
-  cmsHPROFILE src_profile = getColorProfile();
-  if (!src_profile) {
-    src_profile = cmsCreate_sRGBProfile();
-  }
-
-  cmsColorSpaceSignature profileSpace = cmsGetColorSpace(src_profile);
-  useTransform = true;
+  srcProfile = getColorProfile();
 
   inType = TYPE_RGBA_8;
 
-  transform = cmsCreateTransform(
-      src_profile, inType, targetProfile, TYPE_RGBA_8,
-      cmsGetHeaderRenderingIntent(src_profile), cmsFLAGS_COPY_ALPHA);
+  if (!nativeFormat) {
+    if (!srcProfile) {
+      srcProfile = cmsCreate_sRGBProfile();
+    }
+    cmsColorSpaceSignature profileSpace = cmsGetColorSpace(srcProfile);
+    useTransform = true;
 
-  cmsCloseProfile(src_profile);
+    transform = cmsCreateTransform(
+        srcProfile, inType, targetProfile, TYPE_RGBA_8,
+        cmsGetHeaderRenderingIntent(srcProfile), cmsFLAGS_COPY_ALPHA);
+
+    cmsCloseProfile(srcProfile);
+  }
 
   // Set decode region
   config.options.use_cropping =

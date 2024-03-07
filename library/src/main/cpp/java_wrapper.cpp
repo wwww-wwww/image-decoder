@@ -251,9 +251,9 @@ Java_tachiyomi_decoder_ImageDecoder_nativeEncodeJxl(JNIEnv* env, jclass,
   if (is_png(stream->bytes)) {
     LOGW("encoder DECODE PNG");
     decoder = std::make_unique<PngDecoder>(std::move(stream), false, nullptr);
-    //} else if (is_webp(stream->bytes)) {
-    //  // decoder = std::make_unique<WebpDecoder>(std::move(stream), false,
-    //  nullptr);
+  } else if (is_webp(stream->bytes)) {
+    LOGW("encoder DECODE WEBP");
+    decoder = std::make_unique<WebpDecoder>(std::move(stream), false, nullptr);
     //} else if (is_libheif_compatible(stream->bytes, stream->size)) {
     //  // decoder = std::make_unique<HeifDecoder>(std::move(stream), false,
     //  nullptr);
