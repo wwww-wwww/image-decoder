@@ -14,10 +14,11 @@
 #include <jxl/thread_parallel_runner_cxx.h>
 #include <vector>
 
-bool jxl_encode(const uint8_t* pixels, const uint32_t xsize,
-                const uint32_t ysize, const uint8_t components,
-                const float distance, const uint8_t* icc_profile,
-                size_t icc_profile_size, std::vector<uint8_t>* compressed) {
+bool jxl_encode(const uint8_t* data, const size_t data_size,
+                const uint32_t xsize, const uint32_t ysize,
+                const uint8_t components, const float distance,
+                const uint8_t* icc_profile, size_t icc_profile_size,
+                std::vector<uint8_t>* compressed) {
   LOGW("encoder jxl_encode components %d xsize %d ysize %d distance %f icc %d",
        components, xsize, ysize, distance, icc_profile != nullptr);
   auto enc = JxlEncoderMake(/*memory_manager=*/nullptr);
@@ -87,12 +88,14 @@ bool jxl_encode(const uint8_t* pixels, const uint32_t xsize,
 
   JxlEncoderSetFrameLossless(opts, distance == 0);
   JxlEncoderSetFrameDistance(opts, distance);
+  JxlEncoderFrameSettingsSetOption(opts, JXL_ENC_FRAME_SETTING_DECODING_SPEED,
+                                   0);
   JxlEncoderFrameSettingsSetOption(opts, JXL_ENC_FRAME_SETTING_EFFORT, 6);
   JxlEncoderFrameSettingsSetOption(opts, JXL_ENC_FRAME_SETTING_BUFFERING, 2);
 
   if (JXL_ENC_SUCCESS !=
       JxlEncoderAddImageFrame(opts, &pixel_format,
-                              static_cast<const void*>(pixels),
+                              static_cast<const void*>(data),
                               sizeof(uint8_t) * xsize * ysize * components)) {
     LOGW("encoder JxlEncoderAddImageFrame failed\n");
     return false;

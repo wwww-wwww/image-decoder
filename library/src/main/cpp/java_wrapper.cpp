@@ -308,8 +308,8 @@ Java_tachiyomi_decoder_ImageDecoder_nativeEncodeJxl(JNIEnv* env, jclass,
 
   LOGW("encoder encode");
 
-  if (!jxl_encode(input, rect.width, rect.height, components, distance,
-                  srcProfilePtr, srcProfileSize, &compressed))
+  if (!jxl_encode(input, input_size, rect.width, rect.height, components,
+                  distance, srcProfilePtr, srcProfileSize, &compressed))
     return JNI_FALSE;
 
   LOGW("encoder finished encode size %zu", compressed.size());
