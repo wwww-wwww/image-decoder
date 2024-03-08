@@ -7,8 +7,7 @@
 
 JpegxlDecoder::JpegxlDecoder(std::shared_ptr<Stream>&& stream, bool cropBorders,
                              cmsHPROFILE targetProfile)
-    : BaseDecoder(std::move(stream), cropBorders, targetProfile),
-      mSrcProfile(nullptr) {
+    : BaseDecoder(std::move(stream), cropBorders, targetProfile) {
   this->info = parseInfo();
 }
 
@@ -93,13 +92,13 @@ void JpegxlDecoder::decode() {
         throw std::runtime_error("JxlDecoderGetColorAsICCProfile failed");
       }
 
-      mSrcProfile = cmsOpenProfileFromMem(icc_profile.data(), size);
-      cmsColorSpaceSignature profileSpace = cmsGetColorSpace(mSrcProfile);
+      srcProfile = cmsOpenProfileFromMem(icc_profile.data(), size);
+      cmsColorSpaceSignature profileSpace = cmsGetColorSpace(srcProfile);
 
       if (jxl_info.num_color_channels == 3 && profileSpace != cmsSigRgbData ||
           jxl_info.num_color_channels == 1 && profileSpace != cmsSigGrayData) {
-        cmsCloseProfile(mSrcProfile);
-        mSrcProfile = nullptr;
+        cmsCloseProfile(srcProfile);
+        srcProfile = nullptr;
       }
     } else if (status == JXL_DEC_FULL_IMAGE) {
       break;
@@ -155,13 +154,13 @@ void JpegxlDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
   decode();
 
   // Save transformed pixel data.
-  if (!transformed) {
+  if (!transformed || nativeFormat) {
     uint8_t* buf = pixels.data();
 
     std::vector<uint8_t> gray;
     if (jxl_info.num_color_channels == 3) {
       inType = TYPE_RGBA_8;
-    } else if (mSrcProfile) {
+    } else if (srcProfile || nativeFormat) {
       uint32_t num_pixels = jxl_info.xsize * jxl_info.ysize;
       if (jxl_info.alpha_bits > 0) {
         gray.resize(num_pixels * 2);
@@ -180,17 +179,26 @@ void JpegxlDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
       buf = gray.data();
     }
 
-    if (!mSrcProfile) {
+    if (nativeFormat) {
+      int components = inType == TYPE_GRAY_8    ? 1
+                       : inType == TYPE_GRAYA_8 ? 2
+                                                : 4;
+      memcpy(outPixels, buf, jxl_info.xsize * jxl_info.ysize * (components));
+      return;
+    }
+
+    if (!srcProfile) {
       inType = TYPE_RGBA_8;
-      mSrcProfile = cmsCreate_sRGBProfile(); // assume sRGB, should never happen
+      srcProfile = cmsCreate_sRGBProfile(); // assume sRGB, should never happen
     }
 
     transform =
-        cmsCreateTransform(mSrcProfile, inType, targetProfile, TYPE_RGBA_8,
-                           cmsGetHeaderRenderingIntent(mSrcProfile),
+        cmsCreateTransform(srcProfile, inType, targetProfile, TYPE_RGBA_8,
+                           cmsGetHeaderRenderingIntent(srcProfile),
                            inType != TYPE_GRAY_8 ? cmsFLAGS_COPY_ALPHA : 0);
 
-    cmsCloseProfile(mSrcProfile);
+    cmsCloseProfile(srcProfile);
+    srcProfile = nullptr;
 
     cmsDoTransform(transform, buf, pixels.data(),
                    jxl_info.xsize * jxl_info.ysize);

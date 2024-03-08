@@ -6,13 +6,15 @@
 #include "row_convert.h"
 
 bool is_libheif_compatible(const uint8_t* bytes, uint32_t size) {
-  //reject small invalid files that cause heif_check_filetype to return heif_filetype_maybe
+  // reject small invalid files that cause heif_check_filetype to return
+  // heif_filetype_maybe
   if (size < 12) {
     return false;
   }
 
   auto result = heif_check_filetype(bytes, size);
-  return (result != heif_filetype_no) && (result != heif_filetype_yes_unsupported);
+  return (result != heif_filetype_no) &&
+         (result != heif_filetype_yes_unsupported);
 }
 
 auto init_heif_context(Stream* stream) {
@@ -87,34 +89,49 @@ void HeifDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
     auto ctx = init_heif_context(stream.get());
     auto handle = ctx.get_primary_image_handle();
 
-    cmsHPROFILE src_profile = getColorProfile(handle);
-    if (!src_profile) {
-      src_profile = cmsCreate_sRGBProfile(); // assume sRGB
-    }
-
-    useTransform = true;
-
-    cmsColorSpaceSignature profileSpace = cmsGetColorSpace(src_profile);
-
-    if (profileSpace == cmsSigRgbData) {
-      inType = TYPE_RGBA_8;
-    } else {
-      if (handle.has_alpha_channel()) {
-        inType = TYPE_GRAYA_8;
-      } else {
-        inType = TYPE_GRAY_8;
-      }
-    }
+    srcProfile = getColorProfile(handle);
 
     img =
         handle.decode_image(heif_colorspace_RGB, heif_chroma_interleaved_RGBA);
 
-    transform =
-        cmsCreateTransform(src_profile, inType, targetProfile, TYPE_RGBA_8,
-                           cmsGetHeaderRenderingIntent(src_profile),
-                           inType != TYPE_GRAY_8 ? cmsFLAGS_COPY_ALPHA : 0);
+    if (!nativeFormat) {
+      if (!srcProfile) {
+        srcProfile = cmsCreate_sRGBProfile(); // assume sRGB
+      }
 
-    cmsCloseProfile(src_profile);
+      cmsColorSpaceSignature profileSpace = cmsGetColorSpace(srcProfile);
+
+      if (profileSpace == cmsSigRgbData) {
+        inType = TYPE_RGBA_8;
+      } else {
+        if (handle.has_alpha_channel()) {
+          inType = TYPE_GRAYA_8;
+        } else {
+          inType = TYPE_GRAY_8;
+        }
+      }
+      useTransform = true;
+
+      transform =
+          cmsCreateTransform(srcProfile, inType, targetProfile, TYPE_RGBA_8,
+                             cmsGetHeaderRenderingIntent(srcProfile),
+                             inType != TYPE_GRAY_8 ? cmsFLAGS_COPY_ALPHA : 0);
+
+      cmsCloseProfile(srcProfile);
+      srcProfile = nullptr;
+    } else if (srcProfile) {
+      cmsColorSpaceSignature profileSpace = cmsGetColorSpace(srcProfile);
+
+      if (profileSpace == cmsSigRgbData) {
+        inType = TYPE_RGBA_8;
+      } else {
+        if (handle.has_alpha_channel()) {
+          inType = TYPE_GRAYA_8;
+        } else {
+          inType = TYPE_GRAY_8;
+        }
+      }
+    }
   } catch (heif::Error& error) {
     throw std::runtime_error(error.get_message());
   }

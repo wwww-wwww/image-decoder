@@ -242,24 +242,20 @@ Java_tachiyomi_decoder_ImageDecoder_nativeEncodeJxl(JNIEnv* env, jclass,
   size_t srcProfileSize = 0;
 
   LOGW("encoder create decoder");
-  // if (is_jpeg(stream->bytes)) {
-  //   if (quality != 100) {
-  //     // decoder = std::make_unique<JpegDecoder>(std::move(stream), false,
-  //     nullptr);
-  //   }
-  // } else
-  if (is_png(stream->bytes)) {
-    LOGW("encoder DECODE PNG");
+  if (is_jpeg(stream->bytes)) {
+    if (distance != 0) {
+      decoder =
+          std::make_unique<JpegDecoder>(std::move(stream), false, nullptr);
+    }
+  } else if (is_png(stream->bytes)) {
     decoder = std::make_unique<PngDecoder>(std::move(stream), false, nullptr);
   } else if (is_webp(stream->bytes)) {
-    LOGW("encoder DECODE WEBP");
     decoder = std::make_unique<WebpDecoder>(std::move(stream), false, nullptr);
-    //} else if (is_libheif_compatible(stream->bytes, stream->size)) {
-    //  // decoder = std::make_unique<HeifDecoder>(std::move(stream), false,
-    //  nullptr);
-    //} else if (is_jxl(stream->bytes)) {
-    //  // decoder = std::make_unique<JpegxlDecoder>(std::move(stream), false,
-    //  nullptr);
+  } else if (is_libheif_compatible(stream->bytes, stream->size)) {
+    decoder = std::make_unique<HeifDecoder>(std::move(stream), false, nullptr);
+  } else if (is_jxl(stream->bytes)) {
+    decoder =
+        std::make_unique<JpegxlDecoder>(std::move(stream), false, nullptr);
   } else {
     return JNI_FALSE;
   }

@@ -111,18 +111,20 @@ void JpegDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
     inType = TYPE_CMYK_8;
   } else if (jinfo->jpeg_color_space == JCS_GRAYSCALE) {
     inType = TYPE_GRAY_8;
+  } else if (nativeFormat) {
+    inType = TYPE_RGB_8;
   } else {
     inType = TYPE_RGBA_8;
   }
 
-  cmsHPROFILE src_profile = getColorProfile(jinfo);
-  if (!src_profile) {
+  srcProfile = getColorProfile(jinfo);
+  if (!srcProfile) {
     if (inType == TYPE_CMYK_8) {
-      src_profile = cmsOpenProfileFromMem(CMYK_USWebCoatedSWOP_icc,
-                                          CMYK_USWebCoatedSWOP_icc_len);
-    } else {
+      srcProfile = cmsOpenProfileFromMem(CMYK_USWebCoatedSWOP_icc,
+                                         CMYK_USWebCoatedSWOP_icc_len);
+    } else if (!nativeFormat) {
       inType = TYPE_RGBA_8;
-      src_profile = cmsCreate_sRGBProfile();
+      srcProfile = cmsCreate_sRGBProfile();
     }
   }
 
@@ -130,18 +132,31 @@ void JpegDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
     inType = TYPE_CMYK_8_REV;
   }
 
-  useTransform = true;
+  if (!nativeFormat) {
+    useTransform = true;
 
-  transform =
-      cmsCreateTransform(src_profile, inType, targetProfile, TYPE_RGBA_8,
-                         cmsGetHeaderRenderingIntent(src_profile),
-                         inType == TYPE_RGBA_8 ? cmsFLAGS_COPY_ALPHA : 0);
+    transform =
+        cmsCreateTransform(srcProfile, inType, targetProfile, TYPE_RGBA_8,
+                           cmsGetHeaderRenderingIntent(srcProfile),
+                           inType == TYPE_RGBA_8 ? cmsFLAGS_COPY_ALPHA : 0);
 
-  cmsCloseProfile(src_profile);
+    cmsCloseProfile(srcProfile);
+    srcProfile = nullptr;
+  } else if (inType == TYPE_CMYK_8 || inType == TYPE_CMYK_8_REV) {
+    cmsHPROFILE srgb = cmsCreate_sRGBProfile();
+    transform = cmsCreateTransform(srcProfile, inType, srgb, TYPE_RGB_8,
+                                   cmsGetHeaderRenderingIntent(srcProfile), 0);
+    inType = TYPE_RGB_8;
+
+    cmsCloseProfile(srcProfile);
+    cmsCloseProfile(srgb);
+    srcProfile = nullptr;
+  }
 
   jinfo->out_color_space = inType == TYPE_GRAY_8       ? JCS_GRAYSCALE
                            : inType == TYPE_CMYK_8     ? JCS_CMYK
                            : inType == TYPE_CMYK_8_REV ? JCS_CMYK
+                           : inType == TYPE_RGB_8      ? JCS_EXT_RGB
                                                        : JCS_EXT_RGBA;
 
   // 8 is the maximum supported scale by libjpeg, so we'll use custom logic for

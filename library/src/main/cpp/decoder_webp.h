@@ -20,6 +20,7 @@ public:
 private:
   ImageInfo parseInfo();
   cmsHPROFILE getColorProfile();
+  bool lossless = false;
 };
 
 #endif // IMAGEDECODER_DECODER_WEBP_H

@@ -16,6 +16,7 @@ ImageInfo WebpDecoder::parseInfo() {
     throw std::runtime_error("Failed to parse webp");
   }
 
+  lossless = features.format == 2;
   uint32_t imageWidth = features.width;
   uint32_t imageHeight = features.height;
   bool isAnimated = features.has_animation;
@@ -102,6 +103,7 @@ void WebpDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
         cmsGetHeaderRenderingIntent(srcProfile), cmsFLAGS_COPY_ALPHA);
 
     cmsCloseProfile(srcProfile);
+    srcProfile = nullptr;
   }
 
   // Set decode region
