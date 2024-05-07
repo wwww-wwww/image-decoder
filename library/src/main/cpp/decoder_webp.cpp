@@ -42,6 +42,7 @@ ImageInfo WebpDecoder::parseInfo() {
       .imageHeight = imageHeight,
       .isAnimated = isAnimated,
       .bounds = bounds,
+      .transfer = 0,
   };
 }
 

@@ -116,10 +116,11 @@ Java_tachiyomi_decoder_ImageDecoder_nativeDecode(JNIEnv* env, jobject,
     return nullptr;
   }
 
-  auto* bitmap = create_bitmap(env, outRect.width, outRect.height);
+  auto* bitmap =
+      create_bitmap(env, outRect.width, outRect.height, decoder->info.transfer);
   if (!bitmap) {
     LOGE("Failed to create a bitmap of size %dx%dx%d", outRect.width,
-         outRect.height, 4);
+         outRect.height, decoder->info.transfer == 0 ? 4 : 8);
     return nullptr;
   }
 

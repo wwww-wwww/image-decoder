@@ -147,6 +147,7 @@ ImageInfo JpegxlDecoder::parseInfo() {
       .imageHeight = jxl_info.ysize,
       .isAnimated = false, // (bool)jxl_info.have_animation,
       .bounds = bounds,
+      .transfer = 0,
   };
 }
 

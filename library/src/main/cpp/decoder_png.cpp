@@ -111,6 +111,7 @@ ImageInfo PngDecoder::parseInfo() {
       .imageHeight = imageHeight,
       .isAnimated = false,
       .bounds = bounds,
+      .transfer = 0,
   };
 }
 

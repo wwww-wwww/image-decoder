@@ -2,6 +2,7 @@ package tachiyomi.decoder
 
 import android.graphics.Bitmap
 import android.graphics.Rect
+import android.os.Build
 import java.io.InputStream
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -120,9 +121,14 @@ class ImageDecoder private constructor(
     private external fun nativeFindType(bytes: ByteArray): ImageType?
 
     @JvmStatic
-    private fun createBitmap(width: Int, height: Int): Bitmap? {
+    private fun createBitmap(width: Int, height: Int, mode: Int): Bitmap? {
       return try {
-        Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val config = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && mode != 0)
+          Bitmap.Config.RGBA_F16
+        else
+          Bitmap.Config.ARGB_8888
+
+        Bitmap.createBitmap(width, height, config)
       } catch (e: OutOfMemoryError) {
         null
       }

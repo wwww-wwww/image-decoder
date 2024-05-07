@@ -21,7 +21,7 @@ public:
 
 private:
   ImageInfo parseInfo();
-  cmsHPROFILE getColorProfile(heif::ImageHandle handle);
+  cmsHPROFILE getColorProfile(heif_image_handle* handle);
 };
 
 #endif // IMAGEDECODER_DECODER_HEIF_H

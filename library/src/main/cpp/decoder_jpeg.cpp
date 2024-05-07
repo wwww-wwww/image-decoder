@@ -72,6 +72,7 @@ ImageInfo JpegDecoder::parseInfo() {
       .imageHeight = jinfo.image_height,
       .isAnimated = false,
       .bounds = bounds,
+      .transfer = 0,
   };
 }
 

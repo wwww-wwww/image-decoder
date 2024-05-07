@@ -6,13 +6,15 @@
 #include "row_convert.h"
 
 bool is_libheif_compatible(const uint8_t* bytes, uint32_t size) {
-  //reject small invalid files that cause heif_check_filetype to return heif_filetype_maybe
+  // reject small invalid files that cause heif_check_filetype to return
+  // heif_filetype_maybe
   if (size < 12) {
     return false;
   }
 
   auto result = heif_check_filetype(bytes, size);
-  return (result != heif_filetype_no) && (result != heif_filetype_yes_unsupported);
+  return (result != heif_filetype_no) &&
+         (result != heif_filetype_yes_unsupported);
 }
 
 auto init_heif_context(Stream* stream) {
@@ -49,26 +51,37 @@ ImageInfo HeifDecoder::parseInfo() {
     }
   }
 
+  auto im_handle = handle.get_raw_image_handle();
+
+  uint8_t transfer = 0;
+
+  enum heif_color_profile_type profile_type =
+      heif_image_handle_get_color_profile_type(im_handle);
+  if (profile_type == heif_color_profile_type::heif_color_profile_type_nclx) {
+    transfer = 1;
+  } else {
+  }
+
   return ImageInfo{
       .imageWidth = imageWidth,
       .imageHeight = imageHeight,
       .isAnimated = false,
       .bounds = bounds,
+      .transfer = transfer,
   };
 }
 
-cmsHPROFILE HeifDecoder::getColorProfile(heif::ImageHandle handle) {
-  auto im_handle = handle.get_raw_image_handle();
+cmsHPROFILE HeifDecoder::getColorProfile(heif_image_handle* im_handle) {
   size_t icc_size = heif_image_handle_get_raw_color_profile_size(im_handle);
   if (icc_size == 0) {
     return nullptr;
   }
+
   std::vector<uint8_t> icc_profile(icc_size);
   heif_image_handle_get_raw_color_profile(im_handle, icc_profile.data());
 
   cmsHPROFILE src_profile = cmsOpenProfileFromMem(icc_profile.data(), icc_size);
   cmsColorSpaceSignature profileSpace = cmsGetColorSpace(src_profile);
-  int chromabits = handle.get_chroma_bits_per_pixel();
 
   if (profileSpace != cmsSigRgbData && profileSpace != cmsSigGrayData) {
     cmsCloseProfile(src_profile);
@@ -86,35 +99,41 @@ void HeifDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
   try {
     auto ctx = init_heif_context(stream.get());
     auto handle = ctx.get_primary_image_handle();
+    auto im_handle = handle.get_raw_image_handle();
 
-    cmsHPROFILE src_profile = getColorProfile(handle);
-    if (!src_profile) {
-      src_profile = cmsCreate_sRGBProfile(); // assume sRGB
-    }
-
-    useTransform = true;
-
-    cmsColorSpaceSignature profileSpace = cmsGetColorSpace(src_profile);
-
-    if (profileSpace == cmsSigRgbData) {
-      inType = TYPE_RGBA_8;
+    if (info.transfer != 0) {
+      img = handle.decode_image(heif_colorspace_RGB,
+                                heif_chroma_interleaved_RRGGBBAA_LE);
     } else {
-      if (handle.has_alpha_channel()) {
-        inType = TYPE_GRAYA_8;
-      } else {
-        inType = TYPE_GRAY_8;
+      img = handle.decode_image(heif_colorspace_RGB,
+                                heif_chroma_interleaved_RGBA);
+
+      cmsHPROFILE src_profile = getColorProfile(im_handle);
+      if (!src_profile) {
+        src_profile = cmsCreate_sRGBProfile(); // assume sRGB
       }
+
+      useTransform = true;
+
+      cmsColorSpaceSignature profileSpace = cmsGetColorSpace(src_profile);
+
+      if (profileSpace == cmsSigRgbData) {
+        inType = TYPE_RGBA_8;
+      } else {
+        if (handle.has_alpha_channel()) {
+          inType = TYPE_GRAYA_8;
+        } else {
+          inType = TYPE_GRAY_8;
+        }
+      }
+
+      transform =
+          cmsCreateTransform(src_profile, inType, targetProfile, TYPE_RGBA_8,
+                             cmsGetHeaderRenderingIntent(src_profile),
+                             inType != TYPE_GRAY_8 ? cmsFLAGS_COPY_ALPHA : 0);
+
+      cmsCloseProfile(src_profile);
     }
-
-    img =
-        handle.decode_image(heif_colorspace_RGB, heif_chroma_interleaved_RGBA);
-
-    transform =
-        cmsCreateTransform(src_profile, inType, targetProfile, TYPE_RGBA_8,
-                           cmsGetHeaderRenderingIntent(src_profile),
-                           inType != TYPE_GRAY_8 ? cmsFLAGS_COPY_ALPHA : 0);
-
-    cmsCloseProfile(src_profile);
   } catch (heif::Error& error) {
     throw std::runtime_error(error.get_message());
   }
@@ -127,8 +146,10 @@ void HeifDecoder::decode(uint8_t* outPixels, Rect outRect, Rect inRect,
   uint32_t inStrideOffset = inRect.x * (inStride / info.imageWidth);
   auto inPixelsPos = inPixels + inStride * inRect.y;
 
+  int size = info.transfer == 0 ? 4 : 8;
+
   // Calculate output stride
-  uint32_t outStride = outRect.width * 4;
+  uint32_t outStride = outRect.width * size;
   uint8_t* outPixelsPos = outPixels;
 
   if (sampleSize == 1) {

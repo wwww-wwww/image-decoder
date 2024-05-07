@@ -15,16 +15,16 @@ struct ImageInfo {
   uint32_t imageHeight;
   bool isAnimated;
   Rect bounds;
+  uint8_t transfer;
 };
 
 class BaseDecoder {
 public:
   BaseDecoder(std::shared_ptr<Stream>&& stream, bool cropBorders,
-              cmsHPROFILE targetProfile) {
-    this->stream = std::move(stream);
-    this->cropBorders = cropBorders;
-    this->targetProfile = targetProfile;
-  }
+              cmsHPROFILE targetProfile)
+      : stream(std::move(stream)), cropBorders(cropBorders),
+        targetProfile(targetProfile){};
+
   virtual ~BaseDecoder() {
     if (transform) {
       cmsDeleteTransform(transform);

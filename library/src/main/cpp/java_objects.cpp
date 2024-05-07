@@ -22,7 +22,7 @@ void init_java_objects(JNIEnv* env) {
   imageTypeCtor = env->GetMethodID(imageTypeCls, "<init>", "(IZ)V");
 
   createBitmapMethod = env->GetStaticMethodID(imageDecoderCls, "createBitmap",
-                                              "(II)Landroid/graphics/Bitmap;");
+                                              "(IIZ)Landroid/graphics/Bitmap;");
 
   env->DeleteLocalRef(tmpCls);
 }
@@ -33,9 +33,9 @@ jobject create_image_decoder(JNIEnv* env, jlong decoderPtr, jint width,
                         height);
 }
 
-jobject create_bitmap(JNIEnv* env, jint width, jint height) {
+jobject create_bitmap(JNIEnv* env, jint width, jint height, jint mode) {
   return env->CallStaticObjectMethod(imageDecoderCls, createBitmapMethod, width,
-                                     height);
+                                     height, mode);
 }
 
 jobject create_image_type(JNIEnv* env, jint format, jboolean isAnimated) {
