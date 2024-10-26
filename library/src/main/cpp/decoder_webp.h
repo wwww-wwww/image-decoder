@@ -6,8 +6,8 @@
 #define IMAGEDECODER_DECODER_WEBP_H
 
 #include "decoder_base.h"
-#include <src/webp/decode.h>
-#include <src/webp/demux.h>
+#include <webp/decode.h>
+#include <webp/demux.h>
 
 class WebpDecoder : public BaseDecoder {
 public:
