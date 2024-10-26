@@ -56,6 +56,84 @@ android {
 }
 
 dependencies {
+    androidTestImplementation 'androidx.test:core:1.6.1'
+    androidTestImplementation 'androidx.test:core-ktx:1.6.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.ext:junit-ktx:1.2.1'
+    androidTestImplementation 'junit:junit:4.13.2'
+    androidTestImplementation "androidx.test:runner:1.6.2"
+}
+
+task printTaskInputs {
+    doLast {
+        project.getTasks().each { task ->
+
+            if (!task.name.startsWith('buildCMakeDebug')) {
+                return
+            }
+
+            println "--------------------------------------------------------------------------------"
+            println " Task '${project.name}:${task.name}'"
+            println "--------------------------------------------------------------------------------"
+            println ""
+
+            println "File inputs:"
+            try {
+                task.inputs.files.each {
+                    println " - ${it}"
+                }
+            } catch (e) {
+                println "Error ${e}"
+            }
+            println ""
+
+            println "Property inputs:"
+            try{
+                task.inputs.properties.each {
+                    println " - ${it}"
+                }
+            } catch (e) {
+                println "Error ${e}"
+            }
+            println ""
+
+            println "File outputs:"
+            try {
+                task.outputs.files.each {
+                    println " - ${it}"
+                }
+                task.outputs.properties.each {
+                    println " - ${it}"
+                }
+                task.outputs.upToDateSpec.getSpecs().each {
+                    println " * ${it}"
+                }
+            } catch (e) {
+                println "Error ${e}"
+            }
+            println ""
+
+            println "Dependencies"
+            try {
+                task.getDependsOn().each {
+                    println "- ${it}"
+                }
+            } catch (e) {
+                println "Error ${e}"
+            }
+
+            println "--------------------------------------------------------------------------------"
+            println ""
+        }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name.startsWith('buildCMakeDebug')) {
+        task.inputs.files(fileTree("src/main/cpp/"))
+        task.outputs.upToDateSpec = AndSpec.EMPTY
+        outputs.upToDateWhen { true }
+    }
 }
 
 afterEvaluate {

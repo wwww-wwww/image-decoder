@@ -2,20 +2,11 @@ include(ExternalProject)
 
 ExternalProject_Add(ep_heif
     GIT_REPOSITORY      https://github.com/strukturag/libheif.git
-    GIT_TAG             v1.17.6
+    GIT_TAG             v1.19.2
     DEPENDS ep_dav1d ep_de265 ep_webp ep_zlib
     CMAKE_ARGS
-        -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/fakeroot
-        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-        -DANDROID_ABI=${ANDROID_ABI}
-        -DANDROID_PLATFORM=${ANDROID_PLATFORM}
-        -DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF
+        ${EP_CMAKE_ARGS}
         -DWITH_GDK_PIXBUF=OFF
-        -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
-        -DCMAKE_FIND_ROOT_PATH=${CMAKE_FIND_ROOT_PATH}
-        # -DWITH_DAV1D=ON
-        # -DWITH_LIBDE265=ON
         -DWITH_AOM_DECODER=OFF
         -DWITH_AOM_ENCODER=OFF
         -DWITH_SvtEnc=OFF
@@ -26,12 +17,12 @@ ExternalProject_Add(ep_heif
         -DWITH_KVAZAAR=OFF
         -DWITH_OpenJPEG_DECODER=OFF
         -DWITH_OpenJPEG_ENCODER=OFF
-        -DWITH_DAV1D_PLUGIN=OFF
         -DWITH_LIBDE265_PLUGIN=OFF
-        -DBUILD_SHARED_LIBS=OFF
         -DWITH_EXAMPLES=OFF
-        -DWITH_DAV1D=OFF
-        -DWITH_LIBDE265=OFF
+        -DWITH_DAV1D=ON
+        -DWITH_DAV1D_PLUGIN=OFF
+        -DWITH_LIBDE265=ON
+        -DWITH_LIBDE265_PLUGIN=OFF
         -DWITH_X265=OFF
         -DWITH_AOM=OFF
         -DWITH_RAV1E=OFF
