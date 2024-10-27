@@ -46,4 +46,16 @@ jobs:
           cmake-version: '3.22.1'
 
       - name: Build app
-        run: ./gradlew assemble
+        run: ./gradlew assembleDebug
+
+      - name: Check Library Stats
+        run: |
+          ls -lh library/build/intermediates/merged_native_libs/debug/*/out/lib/*/*
+          readelf -d library/build/intermediates/merged_native_libs/debug/*/out/lib/*/*
+
+      # Archive the generated AAR file
+      - name: Archive AAR
+        uses: actions/upload-artifact@v4
+        with:
+          path: library/build/outputs/aar/*.aar
+
