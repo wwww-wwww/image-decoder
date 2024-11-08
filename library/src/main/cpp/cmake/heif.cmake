@@ -4,6 +4,7 @@ ExternalProject_Add(ep_heif
     GIT_REPOSITORY      https://github.com/strukturag/libheif.git
     GIT_TAG             v1.19.2
     DEPENDS ep_dav1d ep_de265 ep_webp ep_zlib
+    PATCH_COMMAND patch -p 1 < ${CMAKE_CURRENT_LIST_DIR}/patches/heif-require-webp.patch || true
     CMAKE_ARGS
         ${EP_CMAKE_ARGS}
         -DWITH_GDK_PIXBUF=OFF

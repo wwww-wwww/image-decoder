@@ -54,6 +54,12 @@ Java_tachiyomi_decoder_ImageDecoder_nativeNewInstance(JNIEnv* env, jclass,
   try {
     if (false) {
     } // This should be optimized out by the compiler.
+#ifdef HAVE_LIBVIPS
+    else if (auto vips_decoder =
+                 try_vips_decoder(stream, cropBorders, targetProfile)) {
+      decoder = vips_decoder;
+    }
+#endif
 #ifdef HAVE_LIBJPEG
     else if (is_jpeg(stream->bytes)) {
       decoder = new JpegDecoder(std::move(stream), cropBorders, targetProfile);

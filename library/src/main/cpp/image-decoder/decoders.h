@@ -6,6 +6,9 @@
 #define IMAGEDECODER_DECODERS_H
 
 #include "decoder_headers.h"
+#ifdef HAVE_LIBVIPS
+#include "decoder_vips.h"
+#endif
 #ifdef HAVE_LIBJPEG
 #include "decoder_jpeg.h"
 #endif
