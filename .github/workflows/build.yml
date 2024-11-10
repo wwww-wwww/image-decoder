@@ -28,14 +28,20 @@ jobs:
           java-version: 17
           distribution: adopt
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
       - name: Install native build dependencies
         run: |
           sudo apt update
           sudo apt install \
             build-essential \
-            meson \
             ninja-build \
             nasm
+          python -m pip install --upgrade pip
+          python -m pip install meson
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
