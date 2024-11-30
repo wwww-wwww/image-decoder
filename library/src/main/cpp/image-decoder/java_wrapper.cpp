@@ -101,26 +101,7 @@ Java_tachiyomi_decoder_ImageDecoder_nativeDecode(JNIEnv* env, jobject,
   }
 
   try {
-    std::vector<uint8_t> out_buffer(outRect.width * outRect.height * 4);
-    uint8_t* pout_buffer = out_buffer.data();
-
-    decoder->decode(pout_buffer, outRect, inRect, sampleSize);
-
-    if (decoder->useTransform) {
-      cmsDoTransform(decoder->transform, pout_buffer, pixels,
-                     outRect.width * outRect.height);
-
-      if (decoder->inType == TYPE_CMYK_8 ||
-          decoder->inType == TYPE_CMYK_8_REV ||
-          decoder->inType == TYPE_GRAY_8) {
-        for (int i = 0; i < outRect.width * outRect.height; i++) {
-          pixels[i * 4 + 3] = 255;
-        }
-      }
-    } else {
-      // out_buffer must be rgba.
-      memcpy(pixels, out_buffer.data(), outRect.width * outRect.height * 4);
-    }
+    decoder->decode(pixels, outRect, inRect, sampleSize);
   } catch (std::exception& ex) {
     LOGE("%s", ex.what());
     AndroidBitmap_unlockPixels(env, bitmap);
