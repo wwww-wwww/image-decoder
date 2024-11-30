@@ -47,45 +47,32 @@ VipsDecoder::VipsDecoder(std::shared_ptr<Stream>&& stream, bool cropBorders,
 
 void VipsDecoder::decode(uint8_t* outPixels, const Rect outRect,
                          const Rect inRect, const uint32_t sampleSize) {
-  // Crop the image. Make sure to not mutate the original image.
-  VImage cropped = image.crop(inRect.x, inRect.y, inRect.width, inRect.height);
 
   double scale = 1.0 / sampleSize;
-
-  cropped = cropped.resize(
+  VImage resized = image.resize(
       scale, VImage::option()->set("kernel", VIPS_KERNEL_LANCZOS3));
-
-  if (cropped.width() != outRect.width || cropped.height() != outRect.height) {
-    // The resize will round the size to the nearest integer, but we outRect is
-    // always inRect diveded by sampleSize rounded down, so any size mismatch is
-    // due to round up, which we can fix by cropping the image down.
-    cropped = cropped.crop(0, 0, outRect.width, outRect.height);
-  }
-
-  uint32_t croppedWidth = cropped.width();
-  uint32_t croppedHeight = cropped.height();
 
   // convert image to sRGB. We could just pass the targetProfile here, but
   // libvips only support loading it from a file. See:
   // https://github.com/libvips/libvips/issues/4283
-  cropped = cropped.icc_transform("srgb");
+  resized = resized.icc_transform("srgb");
   auto srcProfile = cmsCreate_sRGBProfile();
 
   // convert to RGBA8888
-  cropped = cropped.cast(VIPS_FORMAT_UCHAR);
-  if (!cropped.has_alpha()) {
-    cropped = cropped.addalpha();
+  resized = resized.cast(VIPS_FORMAT_UCHAR);
+  if (!resized.has_alpha()) {
+    resized = resized.addalpha();
   }
 
   // Write the cropped data into the provided buffer
-  const VRegion region = cropped.region(0, 0, croppedWidth, croppedHeight);
-  const size_t stride = region.stride();
+  const VRegion region =
+      resized.region(outRect.x, outRect.y, outRect.width, outRect.height);
   const uint8_t* outPixelsEnd = outPixels + outRect.width * outRect.height * 4;
   uint8_t* outline = outPixels;
-  for (uint32_t y = 0; y < croppedHeight; y++) {
-    const uint8_t* line = region.addr(0, y);
+  for (uint32_t y = outRect.y; y < outRect.y + outRect.height; y++) {
+    const uint8_t* line = region.addr(outRect.x, y);
     memcpy(outline, line, outRect.width * 4);
-    outline += stride;
+    outline += outRect.width * 4;
   }
   // ensure we didn't write past the end of the buffer
   assert(outline <= outPixelsEnd);
