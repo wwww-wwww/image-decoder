@@ -2,11 +2,12 @@
 // Created by len on 23/12/20.
 //
 
-#include "borders.h"
-#include "decoders.h"
+#include "decode.h"
+#include "decoder_headers.h"
+#include "decoder_vips.h"
 #include "java_objects.h"
 #include "java_stream.h"
-#include "row_convert.h"
+#include "vips/VImage8.h"
 #include <android/bitmap.h>
 #include <jni.h>
 #include <lcms2.h>
@@ -50,46 +51,9 @@ Java_tachiyomi_decoder_ImageDecoder_nativeNewInstance(JNIEnv* env, jclass,
     targetProfile = cmsCreate_sRGBProfile();
   }
 
-  BaseDecoder* decoder;
+  VipsDecoder* decoder;
   try {
-    if (false) {
-    } // This should be optimized out by the compiler.
-#ifdef HAVE_LIBVIPS
-    else if (auto vips_decoder =
-                 try_vips_decoder(stream, cropBorders, targetProfile)) {
-      decoder = vips_decoder;
-    }
-#endif
-#ifdef HAVE_LIBJPEG
-    else if (is_jpeg(stream->bytes)) {
-      decoder = new JpegDecoder(std::move(stream), cropBorders, targetProfile);
-    }
-#endif
-#ifdef HAVE_LIBPNG
-    else if (is_png(stream->bytes)) {
-      decoder = new PngDecoder(std::move(stream), cropBorders, targetProfile);
-    }
-#endif
-#ifdef HAVE_LIBWEBP
-    else if (is_webp(stream->bytes)) {
-      decoder = new WebpDecoder(std::move(stream), cropBorders, targetProfile);
-    }
-#endif
-#ifdef HAVE_LIBHEIF
-    else if (is_libheif_compatible(stream->bytes, stream->size)) {
-      decoder = new HeifDecoder(std::move(stream), cropBorders, targetProfile);
-    }
-#endif
-#ifdef HAVE_LIBJXL
-    else if (is_jxl(stream->bytes)) {
-      decoder =
-          new JpegxlDecoder(std::move(stream), cropBorders, targetProfile);
-    }
-#endif
-    else {
-      LOGE("No decoder found to handle this stream");
-      return nullptr;
-    }
+    decoder = new VipsDecoder(std::move(stream), cropBorders, targetProfile);
   } catch (std::exception& ex) {
     LOGE("%s", ex.what());
     return nullptr;
@@ -105,7 +69,7 @@ Java_tachiyomi_decoder_ImageDecoder_nativeDecode(JNIEnv* env, jobject,
                                                  jint sampleSize, jint x,
                                                  jint y, jint width,
                                                  jint height) {
-  auto* decoder = (BaseDecoder*)decoderPtr;
+  auto* decoder = (VipsDecoder*)decoderPtr;
 
   // Bounds of the image when crop borders is enabled, otherwise it matches the
   // entire image.
@@ -170,7 +134,7 @@ Java_tachiyomi_decoder_ImageDecoder_nativeDecode(JNIEnv* env, jobject,
 extern "C" JNIEXPORT void JNICALL
 Java_tachiyomi_decoder_ImageDecoder_nativeRecycle(JNIEnv*, jobject,
                                                   jlong decoderPtr) {
-  auto* decoder = (BaseDecoder*)decoderPtr;
+  auto* decoder = (VipsDecoder*)decoderPtr;
   delete decoder;
 }
 
@@ -195,13 +159,12 @@ Java_tachiyomi_decoder_ImageDecoder_nativeFindType(JNIEnv* env, jclass,
     return create_image_type(env, 1, false);
   } else if (is_webp(bytes)) {
     try {
-#ifdef HAVE_LIBWEBP
-      auto decoder = std::make_unique<WebpDecoder>(
-          std::make_shared<Stream>(bytes, size), false, nullptr);
-      return create_image_type(env, 2, decoder->info.isAnimated);
-#else
-      throw std::runtime_error("WebP decoder not available");
-#endif
+      WebPBitstreamFeatures features;
+      if (WebPGetFeatures(bytes, 32, &features) != VP8_STATUS_OK) {
+        throw std::runtime_error("Failed to parse WebP header");
+      };
+
+      return create_image_type(env, 2, features.has_animation);
     } catch (std::exception& ex) {
       LOGW("Failed to parse WebP header. Falling back to non animated WebP");
       return create_image_type(env, 2, false);

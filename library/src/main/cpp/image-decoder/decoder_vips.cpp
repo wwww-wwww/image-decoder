@@ -1,7 +1,10 @@
 #include "decoder_vips.h"
 
+#include "borders.h"
+#include "lcms2.h"
 #include "log.h"
 
+#include "stream.h"
 #include "vips/resample.h"
 #include <vips/vips8>
 
@@ -11,6 +14,7 @@ using namespace vips;
 
 VipsDecoder* try_vips_decoder(std::shared_ptr<Stream>& stream, bool cropBorders,
                               cmsHPROFILE targetProfile) {
+
   try {
     return new VipsDecoder(std::move(stream), cropBorders, targetProfile);
   } catch (const std::exception& e) {
@@ -20,8 +24,12 @@ VipsDecoder* try_vips_decoder(std::shared_ptr<Stream>& stream, bool cropBorders,
 }
 
 VipsDecoder::VipsDecoder(std::shared_ptr<Stream>&& stream, bool cropBorders,
-                         cmsHPROFILE targetProfile)
-    : BaseDecoder(std::move(stream), cropBorders, targetProfile) {
+                         cmsHPROFILE targetProfile) {
+
+  this->stream = std::move(stream);
+  this->cropBorders = cropBorders;
+  this->targetProfile = targetProfile;
+
   if (VIPS_INIT("VipsDecoder")) {
     LOGE("Failed to initialize libvips.");
     throw std::runtime_error("libvips initialization failed");
@@ -48,9 +56,9 @@ void VipsDecoder::decode(uint8_t* outPixels, const Rect outRect,
       scale, VImage::option()->set("kernel", VIPS_KERNEL_LANCZOS3));
 
   if (cropped.width() != outRect.width || cropped.height() != outRect.height) {
-    // we assume outRect is always inRect diveded by sampleSize rounded down,
-    // so any size mismatch is due to round up, which we can fix by cropping
-    // the image down.
+    // The resize will round the size to the nearest integer, but we outRect is
+    // always inRect diveded by sampleSize rounded down, so any size mismatch is
+    // due to round up, which we can fix by cropping the image down.
     cropped = cropped.crop(0, 0, outRect.width, outRect.height);
   }
 

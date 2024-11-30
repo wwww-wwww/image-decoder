@@ -153,7 +153,6 @@ set(EP_AUTOTOOLS_ARGS "--host=${ANDROID_TARGET}${ANDROID_PLATFORM_LEVEL}"
 
 include("cmake/little-cms.cmake")
 include("cmake/jpeg-turbo.cmake")
-include("cmake/png.cmake")
 include("cmake/webp.cmake")
 include("cmake/zlib.cmake")
 include("cmake/dav1d.cmake")
@@ -176,7 +175,7 @@ ExternalProject_Add(ep_image-decoder
     UPDATE_COMMAND ""
     INSTALL_COMMAND ""
     SOURCE_DIR ${PROJECT_SOURCE_DIR}/image-decoder
-    DEPENDS ep_vips ep_png ep_jpeg-turbo ep_heif ep_webp ep_jxl ep_little-cms
+    DEPENDS ep_vips
     CMAKE_ARGS ${EP_CMAKE_ARGS}
       "-DBUILD_SHARED_LIBS=ON"
       "-DBUILD_STATIC_LIBS=OFF"
