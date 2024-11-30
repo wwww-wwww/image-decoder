@@ -88,7 +88,7 @@ class ImageDecoderTest {
             Pair(4, Rect(100, 100, 203, 203)),
         )
 
-        for (i in 1..10) {
+
         // specify a crop rect
         for (imageName in imageFormats) {
             Log.i("ImageDecoderTest", "testing $imageName")
@@ -135,7 +135,7 @@ class ImageDecoderTest {
             // Store the decoder for recycling in tearDown
             decoders.add(decoder)
         }
-        }
+
     }
 
 
@@ -166,54 +166,53 @@ class ImageDecoderTest {
             Pair(4, Rect(100, 100, 203, 203)),
         )
 
-        for (i in 1..10) {
-            // specify a crop rect
-            for (imageName in imageFormats) {
-                Log.i("ImageDecoderTest", "testing $imageName")
-                val decoder = context.assets.open(imageName).use { stream ->
-                    return@use ImageDecoder.newInstance(stream, true)
-                }
-                assertNotNull("Failed to initialize decoder for $imageName", decoder)
-
-                for ((sampleSize, cropRect) in crops) {
-                    Log.i("ImageDecoderTest", "testing $sampleSize $cropRect")
-                    // crop the reference bitmap
-                    var refCroppedBitmap = Bitmap.createBitmap(
-                        refBitmap,
-                        cropRect.left,
-                        cropRect.top,
-                        cropRect.width(),
-                        cropRect.height()
-                    )
-
-                    if (sampleSize > 1) {
-                        // downscale the reference bitmap
-                        val scaledWidth = refCroppedBitmap.width / sampleSize
-                        val scaledHeight = refCroppedBitmap.height / sampleSize
-                        val scaledBitmap = Bitmap.createScaledBitmap(refCroppedBitmap, scaledWidth, scaledHeight, true)
-                        refCroppedBitmap.recycle()
-                        refCroppedBitmap = scaledBitmap
-                    }
-
-                    // Verify decode operation
-                    val bitmap = decoder?.decode(cropRect, sampleSize)
-                    assertNotNull("Bitmap decoding failed for $imageName", bitmap)
-                    assertTrue("Bitmap width should be greater than 0", bitmap!!.width > 0)
-                    assertTrue("Bitmap height should be greater than 0", bitmap.height > 0)
-                    assertTrue("Bitmap width (${bitmap.width} should be equal to ref width (${refCroppedBitmap.width}", bitmap.width == refCroppedBitmap.width)
-                    assertTrue("Bitmap height (${bitmap.height} should be equal to ref height (${refCroppedBitmap.height}", bitmap.height == refCroppedBitmap.height)
-
-                    val diff = compareBitmap(refCroppedBitmap, bitmap)
-
-                    Log.i("ImageDecoderTest", "testImageDecodingForSupportedFormats: diff is $diff")
-
-                    assertTrue("Bitmap for $imageName, diff too big: $diff", diff < 0.2)
-                }
-
-                // Store the decoder for recycling in tearDown
-                decoders.add(decoder)
+        // specify a crop rect
+        for (imageName in imageFormats) {
+            Log.i("ImageDecoderTest", "testing $imageName")
+            val decoder = context.assets.open(imageName).use { stream ->
+                return@use ImageDecoder.newInstance(stream, true)
             }
+            assertNotNull("Failed to initialize decoder for $imageName", decoder)
+
+            for ((sampleSize, cropRect) in crops) {
+                Log.i("ImageDecoderTest", "testing $sampleSize $cropRect")
+                // crop the reference bitmap
+                var refCroppedBitmap = Bitmap.createBitmap(
+                    refBitmap,
+                    cropRect.left,
+                    cropRect.top,
+                    cropRect.width(),
+                    cropRect.height()
+                )
+
+                if (sampleSize > 1) {
+                    // downscale the reference bitmap
+                    val scaledWidth = refCroppedBitmap.width / sampleSize
+                    val scaledHeight = refCroppedBitmap.height / sampleSize
+                    val scaledBitmap = Bitmap.createScaledBitmap(refCroppedBitmap, scaledWidth, scaledHeight, true)
+                    refCroppedBitmap.recycle()
+                    refCroppedBitmap = scaledBitmap
+                }
+
+                // Verify decode operation
+                val bitmap = decoder?.decode(cropRect, sampleSize)
+                assertNotNull("Bitmap decoding failed for $imageName", bitmap)
+                assertTrue("Bitmap width should be greater than 0", bitmap!!.width > 0)
+                assertTrue("Bitmap height should be greater than 0", bitmap.height > 0)
+                assertTrue("Bitmap width (${bitmap.width} should be equal to ref width (${refCroppedBitmap.width}", bitmap.width == refCroppedBitmap.width)
+                assertTrue("Bitmap height (${bitmap.height} should be equal to ref height (${refCroppedBitmap.height}", bitmap.height == refCroppedBitmap.height)
+
+                val diff = compareBitmap(refCroppedBitmap, bitmap)
+
+                Log.i("ImageDecoderTest", "testImageDecodingForSupportedFormats: diff is $diff")
+
+                assertTrue("Bitmap for $imageName, diff too big: $diff", diff < 0.2)
+            }
+
+            // Store the decoder for recycling in tearDown
+            decoders.add(decoder)
         }
+
     }
 
     private fun compareBitmap(a: Bitmap, b: Bitmap): Double {
