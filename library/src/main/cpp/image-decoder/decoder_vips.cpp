@@ -24,11 +24,9 @@ VipsDecoder* try_vips_decoder(std::shared_ptr<Stream>& stream, bool cropBorders,
 }
 
 VipsDecoder::VipsDecoder(std::shared_ptr<Stream>&& stream, bool cropBorders,
-                         cmsHPROFILE targetProfile) {
-
-  this->stream = std::move(stream);
-  this->cropBorders = cropBorders;
-  this->targetProfile = targetProfile;
+                         cmsHPROFILE targetProfile)
+    : stream(std::move(stream)), cropBorders(cropBorders),
+      targetProfile(targetProfile) {
 
   if (VIPS_INIT("VipsDecoder")) {
     LOGE("Failed to initialize libvips.");
@@ -46,7 +44,7 @@ VipsDecoder::VipsDecoder(std::shared_ptr<Stream>&& stream, bool cropBorders,
 }
 
 void VipsDecoder::decode(uint8_t* outPixels, const Rect outRect,
-                         const Rect inRect, const uint32_t sampleSize) {
+                         const uint32_t sampleSize) {
 
   double scale = 1.0 / sampleSize;
   VImage resized = image.resize(
@@ -56,7 +54,6 @@ void VipsDecoder::decode(uint8_t* outPixels, const Rect outRect,
   // libvips only support loading it from a file. See:
   // https://github.com/libvips/libvips/issues/4283
   resized = resized.icc_transform("srgb");
-  auto srcProfile = cmsCreate_sRGBProfile();
 
   // convert to RGBA8888
   resized = resized.cast(VIPS_FORMAT_UCHAR);

@@ -17,31 +17,61 @@ struct ImageInfo {
   uint32_t imageWidth;
   uint32_t imageHeight;
   bool isAnimated;
+  // Bound of the image, excluding the borders if `cropBorders` is true.
   Rect bounds;
 };
 
 class VipsDecoder {
 public:
+  /**
+   * @brief Construct a new VipsDecoder object.
+   *
+   * @param stream The input stream for reading image data.
+   * @param cropBorders Indicates whether ImageInfo.bounds should exclude
+   *        borders around the image.
+   * @param targetProfile The target color profile for the image.
+   */
   VipsDecoder(std::shared_ptr<Stream>&& stream, bool cropBorders,
               cmsHPROFILE targetProfile);
 
-  void decode(uint8_t* outPixels, Rect outRect, Rect srcRegion,
-              uint32_t sampleSize);
+  ~VipsDecoder() {
+    if (targetProfile)
+      cmsCloseProfile(targetProfile);
+  }
 
-protected:
-  std::shared_ptr<Stream> stream; ///< The input stream for reading image data.
+  /**
+   * @brief Decode a region of the image into the provided buffer.
+   *
+   * Decodes a region of the image specified by `srcRegion` into the given
+   * buffer `outPixels`. The buffer must be pre-allocated and expect pixel data
+   * in the RGBA8888 format, with a size of `outRect.width * outRect.height *
+   * 4`.
+   *
+   * @param[out] outPixels Pointer to the output buffer for decoded pixel data.
+   * @param[in] outRect Specifies the region of the resized image to decode.
+   * @param[in] sampleSize Downscaling factor for resizing the image.
+   */
+  void decode(uint8_t* outPixels, Rect outRect, uint32_t sampleSize);
 
-public:
-  bool cropBorders; ///< Indicates whether to crop borders around the image.
-  cmsHPROFILE targetProfile = nullptr; ///< The color profile for decoding.
-  ImageInfo info; ///< Metadata about the image being decoded.
-  cmsHTRANSFORM transform = nullptr; ///< A color transformation.
-  bool useTransform =
-      false; ///< Whether the color transformation should be applied.
-  cmsUInt32Number inType; ///< Input type for the color transformation.
+  // Metadata about the image being decoded.
+  ImageInfo info;
 
 private:
+  // The input stream for reading image data.
+  std::shared_ptr<Stream> stream;
+
+  // The target color profile for the decoded image.
+  // TODO: currently unused, keeping until color management is implemented.
+  cmsHPROFILE targetProfile;
+
+  // Indicates whether to crop borders around the image.
+  bool cropBorders;
+
+  // The VImage object. Have a reference to `stream`, so it must be declared
+  // after it, to ensure it is destroyed first.
   vips::VImage image;
+
+  // Parse the image metadata.
   ImageInfo parseInfo();
 };
 

@@ -7,7 +7,6 @@
 #include "decoder_vips.h"
 #include "java_objects.h"
 #include "java_stream.h"
-#include "vips/VImage8.h"
 #include <android/bitmap.h>
 #include <jni.h>
 #include <lcms2.h>
@@ -101,7 +100,7 @@ Java_tachiyomi_decoder_ImageDecoder_nativeDecode(JNIEnv* env, jobject,
   }
 
   try {
-    decoder->decode(pixels, outRect, inRect, sampleSize);
+    decoder->decode(pixels, outRect, sampleSize);
   } catch (std::exception& ex) {
     LOGE("%s", ex.what());
     AndroidBitmap_unlockPixels(env, bitmap);
