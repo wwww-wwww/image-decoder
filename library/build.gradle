@@ -5,10 +5,10 @@ plugins {
     id "com.dorongold.task-tree" version "4.0.0"
 }
 
-group = 'tachiyomiorg'
+group = 'dev.mihon'
 
 android {
-    namespace = 'tachiyomi.decoder'
+    namespace = 'dev.mihon.image.decoder'
 
     compileSdkVersion 33
     ndkVersion "26.3.11579264"
@@ -28,7 +28,7 @@ android {
         }
 
         ndk {
-            // abiFilters 'arm64-v8a'
+            abiFilters 'arm64-v8a'
         }
     }
 
@@ -143,7 +143,7 @@ afterEvaluate {
             // Creates a Maven publication called "release".
             release(MavenPublication) {
                 from components.release
-                groupId = 'tachiyomiorg'
+                groupId = 'dev.mihon'
                 artifactId = 'image-decoder'
                 version = '1.0'
             }

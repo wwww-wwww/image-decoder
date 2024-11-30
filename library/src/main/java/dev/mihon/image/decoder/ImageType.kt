@@ -1,4 +1,4 @@
-package tachiyomi.decoder
+package dev.mihon.image.decoder
 
 data class ImageType internal constructor(
   val format: Format,

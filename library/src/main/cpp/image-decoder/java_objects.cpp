@@ -13,11 +13,11 @@ static jmethodID createBitmapMethod;
 void init_java_objects(JNIEnv* env) {
   jclass tmpCls;
 
-  tmpCls = env->FindClass("tachiyomi/decoder/ImageDecoder");
+  tmpCls = env->FindClass("dev/mihon/image/decoder/ImageDecoder");
   imageDecoderCls = (jclass)env->NewGlobalRef(tmpCls);
   imageDecoderCtor = env->GetMethodID(imageDecoderCls, "<init>", "(JII)V");
 
-  tmpCls = env->FindClass("tachiyomi/decoder/ImageType");
+  tmpCls = env->FindClass("dev/mihon/image/decoder/ImageType");
   imageTypeCls = (jclass)env->NewGlobalRef(tmpCls);
   imageTypeCtor = env->GetMethodID(imageTypeCls, "<init>", "(IZ)V");
 

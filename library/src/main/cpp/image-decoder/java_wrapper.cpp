@@ -25,10 +25,9 @@ jint JNI_OnLoad(JavaVM* vm, void*) {
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_tachiyomi_decoder_ImageDecoder_nativeNewInstance(JNIEnv* env, jclass,
-                                                      jobject jstream,
-                                                      jboolean cropBorders,
-                                                      jbyteArray icm_stream) {
+Java_dev_mihon_image_decoder_ImageDecoder_nativeNewInstance(
+    JNIEnv* env, jclass, jobject jstream, jboolean cropBorders,
+    jbyteArray icm_stream) {
   auto stream = read_all_java_stream(env, jstream);
   if (!stream) {
     return nullptr;
@@ -63,11 +62,11 @@ Java_tachiyomi_decoder_ImageDecoder_nativeNewInstance(JNIEnv* env, jclass,
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_tachiyomi_decoder_ImageDecoder_nativeDecode(JNIEnv* env, jobject,
-                                                 jlong decoderPtr,
-                                                 jint sampleSize, jint x,
-                                                 jint y, jint width,
-                                                 jint height) {
+Java_dev_mihon_image_decoder_ImageDecoder_nativeDecode(JNIEnv* env, jobject,
+                                                       jlong decoderPtr,
+                                                       jint sampleSize, jint x,
+                                                       jint y, jint width,
+                                                       jint height) {
   auto* decoder = (VipsDecoder*)decoderPtr;
 
   // Bounds of the image when crop borders is enabled, otherwise it matches the
@@ -112,15 +111,15 @@ Java_tachiyomi_decoder_ImageDecoder_nativeDecode(JNIEnv* env, jobject,
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_tachiyomi_decoder_ImageDecoder_nativeRecycle(JNIEnv*, jobject,
-                                                  jlong decoderPtr) {
+Java_dev_mihon_image_decoder_ImageDecoder_nativeRecycle(JNIEnv*, jobject,
+                                                        jlong decoderPtr) {
   auto* decoder = (VipsDecoder*)decoderPtr;
   delete decoder;
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_tachiyomi_decoder_ImageDecoder_nativeFindType(JNIEnv* env, jclass,
-                                                   jbyteArray array) {
+Java_dev_mihon_image_decoder_ImageDecoder_nativeFindType(JNIEnv* env, jclass,
+                                                         jbyteArray array) {
   uint32_t toRead = 32;
   uint32_t size = env->GetArrayLength(array);
 

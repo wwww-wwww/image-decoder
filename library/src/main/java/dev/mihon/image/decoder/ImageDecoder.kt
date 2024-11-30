@@ -1,4 +1,4 @@
-package tachiyomi.decoder
+package dev.mihon.image.decoder
 
 import android.graphics.Bitmap
 import android.graphics.Rect

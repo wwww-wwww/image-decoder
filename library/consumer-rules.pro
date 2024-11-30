@@ -1,5 +1,5 @@
--keep class tachiyomi.decoder.ImageDecoder { *; }
--keep class tachiyomi.decoder.ImageDecoder$Companion { *; }
--keep class tachiyomi.decoder.ImageType { *; }
--keep class tachiyomi.decoder.Format { *; }
--keep class tachiyomi.decoder.Format$Companion { *; }
+-keep class dev.mihon.image.decoder.ImageDecoder { *; }
+-keep class dev.mihon.image.decoder.ImageDecoder$Companion { *; }
+-keep class dev.mihon.image.decoder.ImageType { *; }
+-keep class dev.mihon.image.decoder.Format { *; }
+-keep class dev.mihon.image.decoder.Format$Companion { *; }
