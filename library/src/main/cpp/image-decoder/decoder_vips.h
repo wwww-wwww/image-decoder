@@ -13,14 +13,6 @@
 
 #include <vips/vips8>
 
-struct ImageInfo {
-  uint32_t imageWidth;
-  uint32_t imageHeight;
-  bool isAnimated;
-  // Bound of the image, excluding the borders if `cropBorders` is true.
-  Rect bounds;
-};
-
 class VipsDecoder {
 public:
   /**
@@ -53,8 +45,9 @@ public:
    */
   void decode(uint8_t* outPixels, Rect outRect, uint32_t sampleSize);
 
-  // Metadata about the image being decoded.
-  ImageInfo info;
+  // The bounds of the image. If `cropBorders` is true, the bounds exclude
+  // borders around the image.
+  Rect bounds;
 
 private:
   // The input stream for reading image data.
@@ -64,15 +57,9 @@ private:
   // TODO: currently unused, keeping until color management is implemented.
   cmsHPROFILE targetProfile;
 
-  // Indicates whether to crop borders around the image.
-  bool cropBorders;
-
   // The VImage object. Have a reference to `stream`, so it must be declared
   // after it, to ensure it is destroyed first.
   vips::VImage image;
-
-  // Parse the image metadata.
-  ImageInfo parseInfo();
 };
 
 VipsDecoder* try_vips_decoder(std::shared_ptr<Stream>& stream, bool cropBorders,

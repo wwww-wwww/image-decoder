@@ -25,8 +25,7 @@ VipsDecoder* try_vips_decoder(std::shared_ptr<Stream>& stream, bool cropBorders,
 
 VipsDecoder::VipsDecoder(std::shared_ptr<Stream>&& stream, bool cropBorders,
                          cmsHPROFILE targetProfile)
-    : stream(std::move(stream)), cropBorders(cropBorders),
-      targetProfile(targetProfile) {
+    : stream(std::move(stream)), targetProfile(targetProfile) {
 
   if (VIPS_INIT("VipsDecoder")) {
     LOGE("Failed to initialize libvips.");
@@ -40,7 +39,19 @@ VipsDecoder::VipsDecoder(std::shared_ptr<Stream>&& stream, bool cropBorders,
       // random.
       VImage::option()->set("access", VIPS_ACCESS_RANDOM));
 
-  this->info = parseInfo();
+  this->bounds = {.x = 0,
+                  .y = 0,
+                  .width = (uint32_t)image.width(),
+                  .height = (uint32_t)image.height()};
+
+  // Crop the image if `cropBorders` is enabled
+  if (cropBorders) {
+    // convert image to gray
+    VImage gray_image =
+        image.colourspace(VIPS_INTERPRETATION_B_W).cast(VIPS_FORMAT_UCHAR);
+    this->bounds =
+        findBorders((uint8_t*)gray_image.data(), image.width(), image.height());
+  }
 }
 
 void VipsDecoder::decode(uint8_t* outPixels, const Rect outRect,
@@ -73,25 +84,4 @@ void VipsDecoder::decode(uint8_t* outPixels, const Rect outRect,
   }
   // ensure we didn't write past the end of the buffer
   assert(outline <= outPixelsEnd);
-}
-
-ImageInfo VipsDecoder::parseInfo() {
-  uint32_t imageWidth = this->image.width();
-  uint32_t imageHeight = this->image.height();
-
-  Rect bounds = {.x = 0, .y = 0, .width = imageWidth, .height = imageHeight};
-
-  // Crop the image if `cropBorders` is enabled
-  if (this->cropBorders) {
-    // convert image to gray
-    VImage gray_image = image.colourspace(VIPS_INTERPRETATION_B_W);
-    bounds = findBorders((uint8_t*)gray_image.data(), imageWidth, imageHeight);
-  }
-
-  return ImageInfo{
-      .imageWidth = imageWidth,
-      .imageHeight = imageHeight,
-      .isAnimated = false,
-      .bounds = bounds,
-  };
 }

@@ -57,7 +57,7 @@ Java_dev_mihon_image_decoder_ImageDecoder_nativeNewInstance(
     return nullptr;
   }
 
-  Rect bounds = decoder->info.bounds;
+  Rect bounds = decoder->bounds;
   return create_image_decoder(env, (jlong)decoder, bounds.width, bounds.height);
 }
 
@@ -71,7 +71,7 @@ Java_dev_mihon_image_decoder_ImageDecoder_nativeDecode(JNIEnv* env, jobject,
 
   // Bounds of the image when crop borders is enabled, otherwise it matches the
   // entire image.
-  Rect bounds = decoder->info.bounds;
+  Rect bounds = decoder->bounds;
 
   // Translated requested bounds to the original image.
   Rect inRect = {x + bounds.x, y + bounds.y, (uint32_t)width, (uint32_t)height};
