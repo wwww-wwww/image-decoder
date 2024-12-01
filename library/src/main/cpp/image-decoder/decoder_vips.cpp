@@ -61,10 +61,44 @@ void VipsDecoder::decode(uint8_t* outPixels, const Rect outRect,
   VImage resized = image.resize(
       scale, VImage::option()->set("kernel", VIPS_KERNEL_LANCZOS3));
 
-  // convert image to sRGB. We could just pass the targetProfile here, but
-  // libvips only support loading it from a file. See:
-  // https://github.com/libvips/libvips/issues/4283
-  resized = resized.icc_transform("srgb");
+  cmsHTRANSFORM transform = nullptr;
+  cmsHPROFILE profile;
+  int bands = image.bands();
+
+  if (resized.get_typeof(VIPS_META_ICC_NAME) != 0) {
+    size_t size;
+    const void* data = resized.get_blob(VIPS_META_ICC_NAME, &size);
+
+    profile = cmsOpenProfileFromMem(data, size);
+    if (profile) {
+      cmsColorSpaceSignature colorspace = cmsGetColorSpace(profile);
+
+      if ((bands > 2) && (colorspace == cmsSigRgbData)) {
+        LOGI("RGB");
+        transform = cmsCreateTransform(
+            profile, TYPE_RGBA_8, targetProfile, TYPE_RGBA_8,
+            cmsGetHeaderRenderingIntent(profile), cmsFLAGS_COPY_ALPHA);
+      } else if ((bands == 4) && (colorspace == cmsSigCmykData)) {
+        LOGI("CMYK");
+        transform = cmsCreateTransform(
+            profile, TYPE_CMYK_8, targetProfile, TYPE_RGBA_8,
+            cmsGetHeaderRenderingIntent(profile), cmsFLAGS_COPY_ALPHA);
+      } else {
+        LOGI("n");
+      }
+
+      cmsCloseProfile(profile);
+    }
+  }
+
+  if (!transform) {
+    resized = resized.icc_transform("srgb");
+    cmsHPROFILE profile = cmsCreate_sRGBProfile();
+    transform = cmsCreateTransform(
+        profile, TYPE_RGBA_8, targetProfile, TYPE_RGBA_8,
+        cmsGetHeaderRenderingIntent(profile), cmsFLAGS_COPY_ALPHA);
+    cmsCloseProfile(profile);
+  }
 
   // convert to RGBA8888
   resized = resized.cast(VIPS_FORMAT_UCHAR);
@@ -79,7 +113,7 @@ void VipsDecoder::decode(uint8_t* outPixels, const Rect outRect,
   uint8_t* outline = outPixels;
   for (uint32_t y = outRect.y; y < outRect.y + outRect.height; y++) {
     const uint8_t* line = region.addr(outRect.x, y);
-    memcpy(outline, line, outRect.width * 4);
+    cmsDoTransform(transform, line, outline, outRect.width);
     outline += outRect.width * 4;
   }
   // ensure we didn't write past the end of the buffer
