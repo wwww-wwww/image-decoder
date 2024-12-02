@@ -31,7 +31,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install native build dependencies
         run: |
@@ -49,15 +49,10 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v1.14
         with:
-          cmake-version: '3.22.1'
+          cmake-version: "3.22.1"
 
       - name: Build app
-        run: ./gradlew assembleDebug
-
-      - name: Check Library Stats
-        run: |
-          ls -lh library/build/intermediates/merged_native_libs/debug/*/out/lib/*/*
-          readelf -d library/build/intermediates/merged_native_libs/debug/*/out/lib/*/*
+        run: ./gradlew assemble
 
       # Archive the generated AAR file
       - name: Archive AAR
@@ -65,3 +60,7 @@ jobs:
         with:
           path: library/build/outputs/aar/*.aar
 
+      - name: Publish package
+        run: ./gradlew publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
