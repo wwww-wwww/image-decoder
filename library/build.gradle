@@ -153,9 +153,7 @@ afterEvaluate {
             // Creates a Maven publication called "release".
             gpr(MavenPublication) {
                 from components.release
-                groupId = 'dev.mihon'
                 artifactId = 'image-decoder'
-                version = '1.0'
             }
         }
     }
