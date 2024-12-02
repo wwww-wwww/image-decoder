@@ -3,7 +3,7 @@ name: Build
 on:
   push:
     branches:
-      - main
+      - libvips
     paths-ignore:
       - "**.md"
   pull_request:
